@@ -5,6 +5,7 @@ import (
 	"github.com/miekg/dns"
 	"log"
 	"os"
+	"time"
 )
 
 func main() {
@@ -20,7 +21,7 @@ func main() {
 	log.Printf("Domain: %s", domain)
 	log.Printf("Server: %s", server)
 
-	u, err := upstream.AddressToUpstream(server, upstream.Options{})
+	u, err := upstream.AddressToUpstream(server, upstream.Options{Timeout:10*time.Second})
 	if err != nil {
 		log.Fatalf("Cannot create an upstream: %s", err)
 	}
