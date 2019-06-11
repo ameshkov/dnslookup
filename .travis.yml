@@ -6,11 +6,9 @@ os:
 
 env:
   - GO111MODULE=on
-  - GIMME_GO_VERSION=1.x
 
 go:
   - 1.x
-  - 1.11
 
 script:
   # Windows-386 build
