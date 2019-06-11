@@ -1,3 +1,7 @@
+[![Build Status](https://travis-ci.org/ameshkov/dnslookup.svg?branch=master)](https://travis-ci.org/ameshkov/dnslookup)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ameshkov/dnslookup)](https://goreportcard.com/report/ameshkov/dnslookup)
+[![GolangCI](https://golangci.com/badges/github.com/ameshkov/dnslookup.svg)](https://golangci.com/r/github.com/ameshkov/dnslookup)
+
 # dnslookup
 
 Simple command line utility to make DNS lookups to the specified server.

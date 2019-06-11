@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -13,7 +14,12 @@ import (
 	"github.com/miekg/dns"
 )
 
+// See the makefile
+var VersionString = "undefined"
+
 func main() {
+	os.Stdout.WriteString(fmt.Sprintf("dnslookup %s", VersionString))
+
 	if len(os.Args) != 3 && len(os.Args) != 5 {
 		log.Printf("Wrong number of arguments")
 		usage()
@@ -60,14 +66,14 @@ func main() {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
 
-	_,_ = os.Stdout.WriteString("dnslookup result:")
-	_,_ = os.Stdout.WriteString(reply.String())
+	os.Stdout.WriteString("dnslookup result:")
+	os.Stdout.WriteString(reply.String())
 }
 
 func usage() {
-	log.Print("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]")
-	log.Print("<domain>: mandatory, domain name to lookup")
-	log.Print("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt)")
-	log.Print("<providerName>: optional, DNSCrypt provider name")
-	log.Print("<serverPk>: optional, DNSCrypt server public key")
+	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]")
+	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup")
+	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt)")
+	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name")
+	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key")
 }
