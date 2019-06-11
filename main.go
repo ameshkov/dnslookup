@@ -60,8 +60,8 @@ func main() {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
 
-	log.Print("dnslookup result:")
-	log.Print(reply.String())
+	_,_ = os.Stdout.WriteString("dnslookup result:")
+	_,_ = os.Stdout.WriteString(reply.String())
 }
 
 func usage() {
