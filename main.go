@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -18,9 +20,13 @@ import (
 var VersionString = "undefined"
 
 func main() {
-	os.Stdout.WriteString(fmt.Sprintf("dnslookup %s", VersionString))
+	machineReadable := (os.Getenv("JSON") == "1")
 
-	if len(os.Args) != 3 && len(os.Args) != 5 {
+	if !machineReadable {
+		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+	}
+
+	if len(os.Args) != 3 && len(os.Args) != 4 && len(os.Args) != 5 {
 		log.Printf("Wrong number of arguments")
 		usage()
 		os.Exit(1)
@@ -28,6 +34,15 @@ func main() {
 
 	domain := os.Args[1]
 	server := os.Args[2]
+
+	opts := upstream.Options{Timeout: 10 * time.Second}
+
+	if len(os.Args) == 4 {
+		opts.ServerIP = net.ParseIP(os.Args[3])
+		if opts.ServerIP == nil {
+			log.Fatalf("invalid IP specified: %s", os.Args[3])
+		}
+	}
 
 	if len(os.Args) == 5 {
 		// DNSCrypt parameters
@@ -47,10 +62,7 @@ func main() {
 		server = stamp.String()
 	}
 
-	log.Printf("Domain: %s", domain)
-	log.Printf("Server: %s", server)
-
-	u, err := upstream.AddressToUpstream(server, upstream.Options{Timeout: 10 * time.Second})
+	u, err := upstream.AddressToUpstream(server, opts)
 	if err != nil {
 		log.Fatalf("Cannot create an upstream: %s", err)
 	}
@@ -66,8 +78,17 @@ func main() {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
 
-	os.Stdout.WriteString("dnslookup result:")
-	os.Stdout.WriteString(reply.String())
+	if !machineReadable {
+		os.Stdout.WriteString("dnslookup result:\n")
+		os.Stdout.WriteString(reply.String() + "\n")
+	} else {
+		b, err := json.MarshalIndent(reply, "", "  ")
+		if err != nil {
+			log.Fatalf("Cannot marshal json: %s", err)
+		}
+
+		os.Stdout.WriteString(string(b) + "\n")
+	}
 }
 
 func usage() {
