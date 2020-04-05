@@ -10,22 +10,24 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ameshkov/dnsstamps"
-
 	"github.com/AdguardTeam/dnsproxy/upstream"
+	"github.com/ameshkov/dnsstamps"
 	"github.com/miekg/dns"
 )
 
-// See the makefile
+// VersionString -- see the makefile
 var VersionString = "undefined"
 
 func main() {
-	enableTLS13()
-
-	machineReadable := (os.Getenv("JSON") == "1")
+	machineReadable := os.Getenv("JSON") == "1"
 
 	if !machineReadable {
 		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+	}
+
+	if len(os.Args) == 1 && os.Args[0] == "-h" {
+		usage()
+		os.Exit(1)
 	}
 
 	if len(os.Args) != 3 && len(os.Args) != 4 && len(os.Args) != 5 {
@@ -94,17 +96,9 @@ func main() {
 }
 
 func usage() {
-	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]")
-	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup")
-	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt)")
-	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name")
-	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key")
-}
-
-// TODO after GO 1.13 release TLS 1.3 will be enabled by default. Remove this afterward
-func enableTLS13() {
-	err := os.Setenv("GODEBUG", os.Getenv("GODEBUG")+",tls13=1")
-	if err != nil {
-		log.Fatalf("Failed to enable TLS 1.3: %s", err)
-	}
+	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
+	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
+	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt)\n")
+	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
+	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }
