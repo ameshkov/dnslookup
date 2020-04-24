@@ -6,6 +6,14 @@
 
 Simple command line utility to make DNS lookups to the specified server.
 
+### How to install
+
+You can get a binary from the [releases page](https://github.com/ameshkov/dnslookup/releases).
+
+Or you can install it from the Snap Store:
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/dnslookup)
+
+
 ### Examples:
 
 Plain DNS:

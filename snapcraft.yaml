@@ -7,35 +7,29 @@ description: |
   Examples:
 
   Plain DNS:
-  ```
-  ./dnslookup example.org 176.103.130.130
-  ```
+    `./dnslookup example.org 176.103.130.130`
 
   DNS-over-TLS:
-  ```
-  ./dnslookup example.org tls://dns.adguard.com
-  ```
+    `./dnslookup example.org tls://dns.adguard.com`
 
   DNS-over-HTTPS:
-  ```
-  ./dnslookup example.org https://dns.adguard.com/dns-query
-  ```
+    `./dnslookup example.org https://dns.adguard.com/dns-query`
 
   Machine-readable format:
-  ```
-  JSON=1 ./dnslookup example.org 176.103.130.130
-  ```
+    `JSON=1 ./dnslookup example.org 176.103.130.130`
 
 confinement: strict
 base: core18
 
 parts:
   dnslookup:
-    plugin: go
-    source: https://github.com/ameshkov/dnslookup
-    source-type: git
-    build-packages:
-      - gcc
+    plugin: make
+    source: .
+    build-snaps: [ go ]
+    build-packages: [ git, build-essential ]
+    override-build: |
+      VERSION="${SNAP_VERSION}" make
+      cp dnslookup ${SNAPCRAFT_PART_INSTALL}/
 
 apps:
   dnslookup:
