@@ -15,7 +15,7 @@ endif
 .PHONY: default
 default: build
 
-build: clean test
+build: clean
 	go build -ldflags "-X main.VersionString=$(VERSION)"
 
 release: check-env-release
