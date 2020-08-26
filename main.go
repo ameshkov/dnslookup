@@ -20,9 +20,14 @@ var VersionString = "undefined"
 
 func main() {
 	machineReadable := os.Getenv("JSON") == "1"
+	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 
 	if !machineReadable {
 		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+	}
+
+	if insecureSkipVerify {
+		os.Stdout.WriteString("TLS verification has been disabled\n")
 	}
 
 	if len(os.Args) == 1 && os.Args[0] == "-h" {
@@ -39,13 +44,17 @@ func main() {
 	domain := os.Args[1]
 	server := os.Args[2]
 
-	opts := upstream.Options{Timeout: 10 * time.Second}
+	opts := upstream.Options{
+		Timeout: 10 * time.Second,
+		InsecureSkipVerify: insecureSkipVerify,
+	}
 
 	if len(os.Args) == 4 {
-		opts.ServerIP = net.ParseIP(os.Args[3])
-		if opts.ServerIP == nil {
+		ip := net.ParseIP(os.Args[3])
+		if ip == nil {
 			log.Fatalf("invalid IP specified: %s", os.Args[3])
 		}
+		opts.ServerIPAddrs = []net.IP{ip}
 	}
 
 	if len(os.Args) == 5 {

@@ -51,7 +51,17 @@ DNSCrypt (parameters):
 ./dnslookup example.org 176.103.130.130:5443 2.dnscrypt.default.ns1.adguard.com D12B:47F2:52DC:F2C2:BBF8:9910:86EA:F79C:E449:5D8B:16C8:A0C4:322E:52CA:3F39:0873
 ```
 
+DNS-over-QUIC (experimental, uses port 784):
+```
+./dnslookup example.org quic://dns.adguard.com
+```
+
 Machine-readable format:
 ```
 JSON=1 ./dnslookup example.org 176.103.130.130
+```
+
+Disable certificates verification:
+```
+VERIFY=0 ./dnslookup example.org tls://127.0.0.1
 ```
