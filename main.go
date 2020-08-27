@@ -111,7 +111,7 @@ func main() {
 func usage() {
 	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt)\n")
+	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }
