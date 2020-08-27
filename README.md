@@ -1,18 +1,16 @@
 [![Build Status](https://travis-ci.org/ameshkov/dnslookup.svg?branch=master)](https://travis-ci.org/ameshkov/dnslookup)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ameshkov/dnslookup)](https://goreportcard.com/report/ameshkov/dnslookup)
-[![GolangCI](https://golangci.com/badges/github.com/ameshkov/dnslookup.svg)](https://golangci.com/r/github.com/ameshkov/dnslookup)
+[![Latest release](https://img.shields.io/github/release/ameshkov/dnslookup/all.svg)](https://github.com/ameshkov/dnslookup/releases)
+[![Snap Store](https://snapcraft.io/dnslookup/badge.svg)](https://snapcraft.io/dnslookup)
 
 # dnslookup
 
-Simple command line utility to make DNS lookups to the specified server.
+Simple command line utility to make DNS lookups. Supports all known DNS protocols: plain DNS, DoH, DoT, DoQ, DNSCrypt.
 
 ### How to install
 
-You can get a binary from the [releases page](https://github.com/ameshkov/dnslookup/releases).
-
-Or you can install it from the Snap Store:
-[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/dnslookup)
-
+* You can get a binary from the [releases page](https://github.com/ameshkov/dnslookup/releases).
+* You can install it from the [Snap Store](https://snapcraft.io/dnslookup)
 
 ### Examples:
 
