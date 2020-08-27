@@ -24,15 +24,19 @@ func main() {
 
 	if !machineReadable {
 		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+
+		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+			os.Exit(0)
+		}
 	}
 
 	if insecureSkipVerify {
 		os.Stdout.WriteString("TLS verification has been disabled\n")
 	}
 
-	if len(os.Args) == 1 && os.Args[0] == "-h" {
+	if len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help") {
 		usage()
-		os.Exit(1)
+		os.Exit(0)
 	}
 
 	if len(os.Args) != 3 && len(os.Args) != 4 && len(os.Args) != 5 {
