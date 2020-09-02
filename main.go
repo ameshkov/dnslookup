@@ -7,6 +7,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -21,6 +22,9 @@ var VersionString = "undefined"
 func main() {
 	machineReadable := os.Getenv("JSON") == "1"
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
+	timeoutStr := os.Getenv("TIMEOUT")
+
+	timeout := 10
 
 	if !machineReadable {
 		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
@@ -45,11 +49,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	if timeoutStr != "" {
+		i, err := strconv.Atoi(timeoutStr)
+
+		if err != nil {
+			log.Printf("Wrong timeout value: %s", timeoutStr)
+			usage()
+			os.Exit(1)
+		}
+
+		timeout = i
+	}
+
 	domain := os.Args[1]
 	server := os.Args[2]
 
 	opts := upstream.Options{
-		Timeout: 10 * time.Second,
+		Timeout:            time.Duration(timeout) * time.Second,
 		InsecureSkipVerify: insecureSkipVerify,
 	}
 
