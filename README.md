@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/ameshkov/dnslookup.svg?branch=master)](https://travis-ci.org/ameshkov/dnslookup)
+[![Build Status](https://travis-ci.com/ameshkov/dnslookup.svg?branch=master)](https://travis-ci.com/ameshkov/dnslookup)
 [![Go Report Card](https://goreportcard.com/badge/github.com/ameshkov/dnslookup)](https://goreportcard.com/report/ameshkov/dnslookup)
 [![Latest release](https://img.shields.io/github/release/ameshkov/dnslookup/all.svg)](https://github.com/ameshkov/dnslookup/releases)
 [![Snap Store](https://snapcraft.io/dnslookup/badge.svg)](https://snapcraft.io/dnslookup)
