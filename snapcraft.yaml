@@ -28,7 +28,7 @@ parts:
     build-snaps: [ go ]
     build-packages: [ git, build-essential ]
     override-build: |
-      VERSION="${SNAP_VERSION}-${SNAP_REVISION}" make
+      VERSION="1.4.4-${SNAP_REVISION}" make
       cp dnslookup ${SNAPCRAFT_PART_INSTALL}/
 
 apps:
