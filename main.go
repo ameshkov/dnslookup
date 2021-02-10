@@ -24,6 +24,17 @@ func main() {
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 	timeoutStr := os.Getenv("TIMEOUT")
 
+	rrTypes := make(map[string]uint16)
+	rrTypes["A"] = dns.TypeA
+	rrTypes["AAAA"] = dns.TypeAAAA
+	rrTypes["SVCB"] = dns.TypeSVCB
+	rrTypes["HTTPS"] = dns.TypeHTTPS
+
+	rrtype := rrTypes[os.Getenv("RRTYPE")]
+	if rrtype == 0 {
+		rrtype = dns.TypeA
+	}
+
 	timeout := 10
 
 	if !machineReadable {
@@ -104,7 +115,7 @@ func main() {
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{
-		{Name: domain + ".", Qtype: dns.TypeA, Qclass: dns.ClassINET},
+		{Name: domain + ".", Qtype: rrtype, Qclass: dns.ClassINET},
 	}
 	reply, err := u.Exchange(&req)
 	if err != nil {
