@@ -29,6 +29,7 @@ func main() {
 	rrTypes["AAAA"] = dns.TypeAAAA
 	rrTypes["SVCB"] = dns.TypeSVCB
 	rrTypes["HTTPS"] = dns.TypeHTTPS
+	rrTypes["TXT"] = dns.TypeTXT
 
 	rrtype := rrTypes[os.Getenv("RRTYPE")]
 	if rrtype == 0 {
