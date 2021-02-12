@@ -1,5 +1,5 @@
 name: dnslookup
-version: '1.4.5'
+version: '1.4.6'
 summary: Simple command-line tool to make DNS lookups using any protocol.
 description: |
   Simple command-line tool to make DNS lookups to the specified server using any protocol: DNS, DOH, DOT, DNSCrypt.
@@ -7,7 +7,7 @@ description: |
   Examples:
 
   Plain DNS:
-    `./dnslookup example.org 176.103.130.130`
+    `./dnslookup example.org 94.140.14.14`
 
   DNS-over-TLS:
     `./dnslookup example.org tls://dns.adguard.com`
@@ -16,7 +16,7 @@ description: |
     `./dnslookup example.org https://dns.adguard.com/dns-query`
 
   Machine-readable format:
-    `JSON=1 ./dnslookup example.org 176.103.130.130`
+    `JSON=1 ./dnslookup example.org 94.140.14.14`
 
   Specify the type of resource record (default A):
     `RRTYPE=AAAA ./dnslookup example.org tls://127.0.0.1`
@@ -32,7 +32,7 @@ parts:
     build-snaps: [ go ]
     build-packages: [ git, build-essential ]
     override-build: |
-      VERSION="1.4.5-${SNAP_REVISION}" make
+      VERSION="1.4.6-${SNAP_REVISION}" make
       cp dnslookup ${SNAPCRAFT_PART_INSTALL}/
 
 apps:

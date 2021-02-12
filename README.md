@@ -24,7 +24,7 @@ Simple command line utility to make DNS lookups. Supports all known DNS protocol
 
 Plain DNS:
 ```
-./dnslookup example.org 176.103.130.130
+./dnslookup example.org 94.140.14.14
 ```
 
 DNS-over-TLS:
@@ -34,7 +34,7 @@ DNS-over-TLS:
 
 DNS-over-TLS with IP:
 ```
-./dnslookup example.org tls://dns.adguard.com 176.103.130.130
+./dnslookup example.org tls://dns.adguard.com 94.140.14.14
 ```
 
 DNS-over-HTTPS:
@@ -44,7 +44,7 @@ DNS-over-HTTPS:
 
 DNS-over-HTTPS with IP:
 ```
-./dnslookup example.org https://dns.adguard.com/dns-query 176.103.130.130
+./dnslookup example.org https://dns.adguard.com/dns-query 94.140.14.14
 ```
 
 DNSCrypt (stamp):
@@ -64,7 +64,7 @@ DNS-over-QUIC (experimental, uses port 784):
 
 Machine-readable format:
 ```
-JSON=1 ./dnslookup example.org 176.103.130.130
+JSON=1 ./dnslookup example.org 94.140.14.14
 ```
 
 Disable certificates verification:
