@@ -24,6 +24,17 @@ func main() {
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 	timeoutStr := os.Getenv("TIMEOUT")
 
+	rrTypeStr := os.Getenv("RRTYPE")
+	rrType, ok := dns.StringToType[rrTypeStr]
+	if !ok {
+		if rrTypeStr != "" {
+			log.Printf("Invalid RRTYPE: %s", rrTypeStr)
+			usage()
+			os.Exit(1)
+		}
+		rrType = dns.TypeA
+	}
+
 	timeout := 10
 
 	if !machineReadable {
@@ -104,7 +115,7 @@ func main() {
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{
-		{Name: domain + ".", Qtype: dns.TypeA, Qclass: dns.ClassINET},
+		{Name: domain + ".", Qtype: rrType, Qclass: dns.ClassINET},
 	}
 	reply, err := u.Exchange(&req)
 	if err != nil {
