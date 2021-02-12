@@ -9,6 +9,14 @@ Simple command line utility to make DNS lookups. Supports all known DNS protocol
 
 ### How to install
 
+* Using homebrew:
+    ```
+    brew install ameshkov/tap/dnslookup
+    ```
+* From source:
+    ```
+    go get github.com/ameshkov/dnslookup
+    ```
 * You can get a binary from the [releases page](https://github.com/ameshkov/dnslookup/releases).
 * You can install it from the [Snap Store](https://snapcraft.io/dnslookup)
 
