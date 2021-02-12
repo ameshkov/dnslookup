@@ -18,6 +18,10 @@ description: |
   Machine-readable format:
     `JSON=1 ./dnslookup example.org 176.103.130.130`
 
+  Specify the type of resource record (default A):
+    `RRTYPE=AAAA ./dnslookup example.org tls://127.0.0.1`
+    `RRTYPE=HTTPS ./dnslookup example.org tls://127.0.0.1`
+
 confinement: strict
 base: core20
 
