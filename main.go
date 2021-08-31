@@ -75,7 +75,7 @@ func main() {
 	domain := os.Args[1]
 	server := os.Args[2]
 
-	opts := upstream.Options{
+	opts := &upstream.Options{
 		Timeout:            time.Duration(timeout) * time.Second,
 		InsecureSkipVerify: insecureSkipVerify,
 	}
