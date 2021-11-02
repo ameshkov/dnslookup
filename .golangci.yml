@@ -17,7 +17,7 @@ run:
 # all available settings of specific linters
 linters-settings:
   gocyclo:
-    min-complexity: 20
+    min-complexity: 22
   lll:
     line-length: 200
 
