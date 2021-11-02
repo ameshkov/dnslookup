@@ -20,35 +20,12 @@ import (
 var VersionString = "undefined"
 
 func main() {
+	// parse env variables
 	machineReadable := os.Getenv("JSON") == "1"
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 	timeoutStr := os.Getenv("TIMEOUT")
-
-	classStr := os.Getenv("CLASS")
-	class, ok := dns.StringToClass[classStr]
-	if !ok {
-		if classStr != "" {
-			log.Printf("Invalid CLASS: %q", classStr)
-			usage()
-
-			os.Exit(1)
-		}
-
-		class = dns.ClassINET
-	}
-
-	rrTypeStr := os.Getenv("RRTYPE")
-	rrType, ok := dns.StringToType[rrTypeStr]
-	if !ok {
-		if rrTypeStr != "" {
-			log.Printf("Invalid RRTYPE: %q", rrTypeStr)
-			usage()
-
-			os.Exit(1)
-		}
-
-		rrType = dns.TypeA
-	}
+	class := getClass()
+	rrType := getRRType()
 
 	timeout := 10
 
@@ -148,6 +125,40 @@ func main() {
 
 		os.Stdout.WriteString(string(b) + "\n")
 	}
+}
+
+func getClass() (class uint16) {
+	classStr := os.Getenv("CLASS")
+	var ok bool
+	class, ok = dns.StringToClass[classStr]
+	if !ok {
+		if classStr != "" {
+			log.Printf("Invalid CLASS: %q", classStr)
+			usage()
+
+			os.Exit(1)
+		}
+
+		class = dns.ClassINET
+	}
+	return class
+}
+
+func getRRType() (rrType uint16) {
+	rrTypeStr := os.Getenv("RRTYPE")
+	var ok bool
+	rrType, ok = dns.StringToType[rrTypeStr]
+	if !ok {
+		if rrTypeStr != "" {
+			log.Printf("Invalid RRTYPE: %q", rrTypeStr)
+			usage()
+
+			os.Exit(1)
+		}
+
+		rrType = dns.TypeA
+	}
+	return rrType
 }
 
 func usage() {
