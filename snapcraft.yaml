@@ -1,5 +1,5 @@
 name: dnslookup
-version: '1.4.8'
+version: '1.5.0'
 summary: Simple command-line tool to make DNS lookups using any protocol.
 description: |
   Simple command-line tool to make DNS lookups to the specified server using any protocol: DNS, DOH, DOT, DNSCrypt.
