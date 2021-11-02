@@ -24,21 +24,36 @@ func main() {
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 	timeoutStr := os.Getenv("TIMEOUT")
 
+	classStr := os.Getenv("CLASS")
+	class, ok := dns.StringToClass[classStr]
+	if !ok {
+		if classStr != "" {
+			log.Printf("Invalid CLASS: %q", classStr)
+			usage()
+
+			os.Exit(1)
+		}
+
+		class = dns.ClassINET
+	}
+
 	rrTypeStr := os.Getenv("RRTYPE")
 	rrType, ok := dns.StringToType[rrTypeStr]
 	if !ok {
 		if rrTypeStr != "" {
-			log.Printf("Invalid RRTYPE: %s", rrTypeStr)
+			log.Printf("Invalid RRTYPE: %q", rrTypeStr)
 			usage()
+
 			os.Exit(1)
 		}
+
 		rrType = dns.TypeA
 	}
 
 	timeout := 10
 
 	if !machineReadable {
-		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+		os.Stdout.WriteString(fmt.Sprintf("dnslookup v. %s\n", VersionString))
 
 		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
 			os.Exit(0)
@@ -62,7 +77,6 @@ func main() {
 
 	if timeoutStr != "" {
 		i, err := strconv.Atoi(timeoutStr)
-
 		if err != nil {
 			log.Printf("Wrong timeout value: %s", timeoutStr)
 			usage()
@@ -93,7 +107,7 @@ func main() {
 		providerName := os.Args[3]
 		serverPkStr := os.Args[4]
 
-		serverPk, err := hex.DecodeString(strings.Replace(serverPkStr, ":", "", -1))
+		serverPk, err := hex.DecodeString(strings.ReplaceAll(serverPkStr, ":", ""))
 		if err != nil {
 			log.Fatalf("Invalid server PK %s: %s", serverPkStr, err)
 		}
@@ -115,7 +129,7 @@ func main() {
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{
-		{Name: domain + ".", Qtype: rrType, Qclass: dns.ClassINET},
+		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
 	reply, err := u.Exchange(&req)
 	if err != nil {
@@ -126,7 +140,8 @@ func main() {
 		os.Stdout.WriteString("dnslookup result:\n")
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
-		b, err := json.MarshalIndent(reply, "", "  ")
+		var b []byte
+		b, err = json.MarshalIndent(reply, "", "  ")
 		if err != nil {
 			log.Fatalf("Cannot marshal json: %s", err)
 		}
