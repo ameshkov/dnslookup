@@ -76,3 +76,8 @@ Specify the type of resource record (default A):
 RRTYPE=AAAA ./dnslookup example.org tls://127.0.0.1
 RRTYPE=HTTPS ./dnslookup example.org tls://127.0.0.1
 ```
+
+Specify the class of query (default IN):
+```
+CLASS=CH ./dnslookup example.org tls://127.0.0.1
+```
