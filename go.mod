@@ -3,7 +3,7 @@ module github.com/ameshkov/dnslookup
 go 1.17
 
 require (
-	github.com/AdguardTeam/dnsproxy v0.39.9
+	github.com/AdguardTeam/dnsproxy v0.39.10
 	github.com/ameshkov/dnsstamps v1.0.3
 	github.com/miekg/dns v1.1.43
 )
