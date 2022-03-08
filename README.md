@@ -61,6 +61,12 @@ DNS-over-QUIC (experimental, uses port 784):
 ./dnslookup example.org quic://dns.adguard.com
 ```
 
+DNS-over-HTTP/3:
+```
+./dnslookup example.org h3://doh3.dns.nextdns.io
+./dnslookup example.org h3://cloudflare-dns.com/dns-query
+```
+
 Machine-readable format:
 ```
 JSON=1 ./dnslookup example.org 94.140.14.14

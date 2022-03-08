@@ -96,29 +96,37 @@ func main() {
 		stamp.ServerPk = serverPk
 		server = stamp.String()
 	}
-
-	u, err := upstream.AddressToUpstream(server, opts)
-	if err != nil {
-		log.Fatalf("Cannot create an upstream: %s", err)
-	}
-
 	req := dns.Msg{}
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
-	reply, err := u.Exchange(&req)
-	if err != nil {
-		log.Fatalf("Cannot make the DNS request: %s", err)
+
+	var reply *dns.Msg
+	if isH3(server) {
+		var err error
+		reply, err = doh3(server, req, time.Duration(timeout)*time.Second)
+		if err != nil {
+			log.Fatalf("Cannot make the DNS request: %s", err)
+		}
+	} else {
+		u, err := upstream.AddressToUpstream(server, opts)
+		if err != nil {
+			log.Fatalf("Cannot create an upstream: %s", err)
+		}
+
+		reply, err = u.Exchange(&req)
+		if err != nil {
+			log.Fatalf("Cannot make the DNS request: %s", err)
+		}
 	}
 
 	if !machineReadable {
 		os.Stdout.WriteString("dnslookup result:\n")
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
-		var b []byte
-		b, err = json.MarshalIndent(reply, "", "  ")
+		b, err := json.MarshalIndent(reply, "", "  ")
 		if err != nil {
 			log.Fatalf("Cannot marshal json: %s", err)
 		}
@@ -164,7 +172,7 @@ func getRRType() (rrType uint16) {
 func usage() {
 	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
+	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ), h3:// (DOH3)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }

@@ -5,6 +5,7 @@ go 1.17
 require (
 	github.com/AdguardTeam/dnsproxy v0.39.10
 	github.com/ameshkov/dnsstamps v1.0.3
+	github.com/lucas-clemente/quic-go v0.24.0
 	github.com/miekg/dns v1.1.43
 )
 
@@ -17,7 +18,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/joomcode/errorx v1.0.3 // indirect
-	github.com/lucas-clemente/quic-go v0.24.0 // indirect
+	github.com/marten-seemann/qpack v0.2.1 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.4 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
