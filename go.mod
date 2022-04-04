@@ -1,6 +1,6 @@
 module github.com/ameshkov/dnslookup
 
-go 1.17
+go 1.18
 
 require (
 	github.com/AdguardTeam/dnsproxy v0.39.10
@@ -17,9 +17,10 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
 	github.com/joomcode/errorx v1.0.3 // indirect
-	github.com/lucas-clemente/quic-go v0.24.0 // indirect
-	github.com/marten-seemann/qtls-go1-16 v0.1.4 // indirect
-	github.com/marten-seemann/qtls-go1-17 v0.1.0 // indirect
+	github.com/lucas-clemente/quic-go v0.26.0 // indirect
+	github.com/marten-seemann/qtls-go1-16 v0.1.5 // indirect
+	github.com/marten-seemann/qtls-go1-17 v0.1.1 // indirect
+	github.com/marten-seemann/qtls-go1-18 v0.1.1 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.5 // indirect
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519 // indirect
