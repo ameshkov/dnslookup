@@ -36,7 +36,7 @@ linters:
     - dupl
     - gocyclo
     - goimports
-    - golint
+    - revive
     - gosec
     - misspell
     - stylecheck

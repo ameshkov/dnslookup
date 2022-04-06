@@ -23,4 +23,4 @@ jobs:
         with:
           # This field is required.  Dont set the patch version to always use
           # the latest patch version.
-          version: v1.38
+          version: v1.45.2
