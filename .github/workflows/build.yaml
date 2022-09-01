@@ -64,6 +64,9 @@ jobs:
       # MacOS
       - run: GOOS=darwin GOARCH=amd64 VERSION=${RELEASE_VERSION} make release
 
+      # MacOS ARM
+      - run: GOOS=darwin GOARCH=arm64 VERSION=${RELEASE_VERSION} make release
+
       # Linux X86
       - run: GOOS=linux GOARCH=386 VERSION=${RELEASE_VERSION} make release
       - run: GOOS=linux GOARCH=amd64 VERSION=${RELEASE_VERSION} make release
