@@ -81,3 +81,9 @@ Specify the class of query (default IN):
 ```
 CLASS=CH ./dnslookup example.org tls://127.0.0.1
 ```
+
+Validate DNSSEC:
+```
+# AuthenticatedData will be set to "true" if DNSSEC was active and verified
+DNSSECOK=1 JSON=1 ./dnslookup example.org 94.140.14.14
+```
