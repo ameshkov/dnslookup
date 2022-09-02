@@ -24,6 +24,7 @@ func main() {
 	machineReadable := os.Getenv("JSON") == "1"
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 	timeoutStr := os.Getenv("TIMEOUT")
+	validateDNSSEC := os.Getenv("DNSSECOK")
 	class := getClass()
 	rrType := getRRType()
 
@@ -103,6 +104,11 @@ func main() {
 	}
 
 	req := dns.Msg{}
+
+	if validateDNSSEC != "" {
+		req.SetEdns0(4096, true)
+	}
+	
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{
