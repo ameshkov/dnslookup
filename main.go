@@ -1,10 +1,11 @@
+// Package main is the command-line tool that does DNS lookups using
+// dnsproxy/upstream.  See README.md for more information.
 package main
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net"
 	"os"
 	"strconv"
@@ -12,6 +13,7 @@ import (
 	"time"
 
 	"github.com/AdguardTeam/dnsproxy/upstream"
+	"github.com/AdguardTeam/golibs/log"
 	"github.com/ameshkov/dnsstamps"
 	"github.com/miekg/dns"
 )
@@ -24,8 +26,14 @@ func main() {
 	machineReadable := os.Getenv("JSON") == "1"
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
 	timeoutStr := os.Getenv("TIMEOUT")
+	http3Enabled := os.Getenv("HTTP3") == "1"
+	verbose := os.Getenv("VERBOSE") == "1"
 	class := getClass()
 	rrType := getRRType()
+
+	if verbose {
+		log.SetLevel(log.DEBUG)
+	}
 
 	timeout := 10
 
@@ -66,9 +74,19 @@ func main() {
 	domain := os.Args[1]
 	server := os.Args[2]
 
+	var httpVersions []upstream.HTTPVersion
+	if http3Enabled {
+		httpVersions = []upstream.HTTPVersion{
+			upstream.HTTPVersion3,
+			upstream.HTTPVersion2,
+			upstream.HTTPVersion11,
+		}
+	}
+
 	opts := &upstream.Options{
 		Timeout:            time.Duration(timeout) * time.Second,
 		InsecureSkipVerify: insecureSkipVerify,
+		HTTPVersions:       httpVersions,
 	}
 
 	if len(os.Args) == 4 {

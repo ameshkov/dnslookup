@@ -17,20 +17,17 @@ run:
 # all available settings of specific linters
 linters-settings:
   gocyclo:
-    min-complexity: 22
+    min-complexity: 25
   lll:
     line-length: 200
 
 linters:
   enable:
-    - deadcode
     - errcheck
     - govet
     - ineffassign
     - staticcheck
-    - structcheck
     - unused
-    - varcheck
     - bodyclose
     - depguard
     - dupl

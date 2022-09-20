@@ -36,9 +36,19 @@ DNS-over-TLS with IP:
 ./dnslookup example.org tls://dns.adguard.com 94.140.14.14
 ```
 
-DNS-over-HTTPS:
+DNS-over-HTTPS with HTTP/2:
 ```
 ./dnslookup example.org https://dns.adguard.com/dns-query
+```
+
+DNS-over-HTTPS with HTTP/3 support (the version is chosen automatically):
+```
+HTTP3=1 ./dnslookup example.org http://dns.google/dns-query
+```
+
+DNS-over-HTTPS forcing HTTP/3 only:
+```
+./dnslookup example.org h3://dns.google/dns-query
 ```
 
 DNS-over-HTTPS with IP:
@@ -80,4 +90,9 @@ RRTYPE=HTTPS ./dnslookup example.org tls://127.0.0.1
 Specify the class of query (default IN):
 ```
 CLASS=CH ./dnslookup example.org tls://127.0.0.1
+```
+
+Verbose-level logging:
+```shell
+VERBOSE=1 ./dnslookup example.org tls://dns.adguard.com
 ```
