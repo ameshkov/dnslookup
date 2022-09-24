@@ -126,7 +126,11 @@ func main() {
 	req.Question = []dns.Question{
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
+
+	start := time.Now()
 	reply, err := u.Exchange(&req)
+	duration := time.Since(start)
+
 	if err != nil {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
@@ -134,6 +138,7 @@ func main() {
 	if !machineReadable {
 		os.Stdout.WriteString("dnslookup result:\n")
 		os.Stdout.WriteString(reply.String() + "\n")
+		os.Stdout.WriteString(fmt.Sprintf("Query time: %s\n", &duration))
 	} else {
 		var b []byte
 		b, err = json.MarshalIndent(reply, "", "  ")
