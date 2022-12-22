@@ -28,6 +28,7 @@ func main() {
 	timeoutStr := os.Getenv("TIMEOUT")
 	http3Enabled := os.Getenv("HTTP3") == "1"
 	verbose := os.Getenv("VERBOSE") == "1"
+	padding := os.Getenv("PAD") == "1"
 	class := getClass()
 	rrType := getRRType()
 
@@ -126,6 +127,11 @@ func main() {
 	req.Question = []dns.Question{
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
+
+	if padding {
+		req.Extra = []dns.RR{newEDNS0Padding()}
+	}
+
 	reply, err := u.Exchange(&req)
 	if err != nil {
 		log.Fatalf("Cannot make the DNS request: %s", err)
@@ -185,4 +191,14 @@ func usage() {
 	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
+}
+
+// newEDNS0Padding constructs a new OPT RR EDNS0 Padding for the extra section.
+func newEDNS0Padding() (extra dns.RR) {
+	return &dns.OPT{
+		Hdr: dns.RR_Header{Name: ".", Rrtype: dns.TypeOPT, Class: 2000},
+		Option: []dns.EDNS0{
+			&dns.EDNS0_PADDING{Padding: []byte{0, 0, 0}},
+		},
+	}
 }
