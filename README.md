@@ -92,6 +92,11 @@ Specify the class of query (default IN):
 CLASS=CH ./dnslookup example.org tls://127.0.0.1
 ```
 
+Add EDNS0 Padding:
+```
+PAD=1 ./dnslookup example.org tls://127.0.0.1
+```
+
 Verbose-level logging:
 ```shell
 VERBOSE=1 ./dnslookup example.org tls://dns.adguard.com

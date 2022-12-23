@@ -28,6 +28,7 @@ func main() {
 	timeoutStr := os.Getenv("TIMEOUT")
 	http3Enabled := os.Getenv("HTTP3") == "1"
 	verbose := os.Getenv("VERBOSE") == "1"
+	padding := os.Getenv("PAD") == "1"
 	class := getClass()
 	rrType := getRRType()
 
@@ -126,6 +127,11 @@ func main() {
 	req.Question = []dns.Question{
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
+
+	if padding {
+		req.Extra = []dns.RR{newEDNS0Padding(req)}
+	}
+
 	reply, err := u.Exchange(&req)
 	if err != nil {
 		log.Fatalf("Cannot make the DNS request: %s", err)
@@ -185,4 +191,30 @@ func usage() {
 	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
+}
+
+// requestPaddingBlockSize is used to pad responses over DoT and DoH according
+// to RFC 8467.
+const requestPaddingBlockSize = 128
+const uDPBufferSize = dns.DefaultMsgSize
+
+// newEDNS0Padding constructs a new OPT RR EDNS0 Padding for the extra section.
+func newEDNS0Padding(req dns.Msg) (extra dns.RR) {
+	msgLen := req.Len()
+	padLen := requestPaddingBlockSize - msgLen%requestPaddingBlockSize
+
+	// Truncate padding to fit in UDP buffer.
+	if msgLen+padLen > uDPBufferSize {
+		padLen = uDPBufferSize - msgLen
+		if padLen < 0 {
+			padLen = 0
+		}
+	}
+
+	return &dns.OPT{
+		Hdr: dns.RR_Header{Name: ".", Rrtype: dns.TypeOPT, Class: uDPBufferSize},
+		Option: []dns.EDNS0{
+			&dns.EDNS0_PADDING{Padding: make([]byte, padLen)},
+		},
+	}
 }
