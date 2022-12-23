@@ -196,7 +196,7 @@ func usage() {
 // requestPaddingBlockSize is used to pad responses over DoT and DoH according
 // to RFC 8467.
 const requestPaddingBlockSize = 128
-const UDPBufferSize = dns.DefaultMsgSize
+const uDPBufferSize = dns.DefaultMsgSize
 
 // newEDNS0Padding constructs a new OPT RR EDNS0 Padding for the extra section.
 func newEDNS0Padding(req dns.Msg) (extra dns.RR) {
@@ -204,15 +204,15 @@ func newEDNS0Padding(req dns.Msg) (extra dns.RR) {
 	padLen := requestPaddingBlockSize - msgLen%requestPaddingBlockSize
 
 	// Truncate padding to fit in UDP buffer.
-	if msgLen+padLen > UDPBufferSize {
-		padLen = UDPBufferSize - msgLen
+	if msgLen+padLen > uDPBufferSize {
+		padLen = uDPBufferSize - msgLen
 		if padLen < 0 {
 			padLen = 0
 		}
 	}
 
 	return &dns.OPT{
-		Hdr: dns.RR_Header{Name: ".", Rrtype: dns.TypeOPT, Class: UDPBufferSize},
+		Hdr: dns.RR_Header{Name: ".", Rrtype: dns.TypeOPT, Class: uDPBufferSize},
 		Option: []dns.EDNS0{
 			&dns.EDNS0_PADDING{Padding: make([]byte, padLen)},
 		},
