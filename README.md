@@ -43,7 +43,7 @@ DNS-over-HTTPS with HTTP/2:
 
 DNS-over-HTTPS with HTTP/3 support (the version is chosen automatically):
 ```
-HTTP3=1 ./dnslookup example.org http://dns.google/dns-query
+HTTP3=1 ./dnslookup example.org https://dns.google/dns-query
 ```
 
 DNS-over-HTTPS forcing HTTP/3 only:
