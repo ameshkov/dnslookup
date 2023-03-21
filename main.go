@@ -30,6 +30,8 @@ func main() {
 	verbose := os.Getenv("VERBOSE") == "1"
 	padding := os.Getenv("PAD") == "1"
 	class := getClass()
+	do := os.Getenv("DNSSEC") == "1"
+	subnetRR := getSubnet()
 	rrType := getRRType()
 
 	if verbose {
@@ -121,18 +123,24 @@ func main() {
 		log.Fatalf("Cannot create an upstream: %s", err)
 	}
 
-	req := dns.Msg{}
+	req := &dns.Msg{}
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
 
-	if padding {
-		req.Extra = []dns.RR{newEDNS0Padding(req)}
+	if subnetRR != nil {
+		opt := getOrCreateOpt(req, do)
+		opt.Option = append(opt.Option, subnetRR)
 	}
 
-	reply, err := u.Exchange(&req)
+	if padding {
+		opt := getOrCreateOpt(req, do)
+		opt.Option = append(opt.Option, newEDNS0Padding(req))
+	}
+
+	reply, err := u.Exchange(req)
 	if err != nil {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
@@ -148,6 +156,41 @@ func main() {
 		}
 
 		os.Stdout.WriteString(string(b) + "\n")
+	}
+}
+
+func getOrCreateOpt(req *dns.Msg, do bool) (opt *dns.OPT) {
+	opt = req.IsEdns0()
+	if opt == nil {
+		req.SetEdns0(udpBufferSize, do)
+		opt = req.IsEdns0()
+	}
+
+	return opt
+}
+
+func getSubnet() (rr *dns.EDNS0_SUBNET) {
+	subnetStr := os.Getenv("SUBNET")
+	if subnetStr == "" {
+		return nil
+	}
+
+	_, ipNet, err := net.ParseCIDR(subnetStr)
+	if err != nil {
+		log.Printf("invalid SUBNET: %v", err)
+		usage()
+
+		os.Exit(1)
+	}
+
+	ones, _ := ipNet.Mask.Size()
+
+	return &dns.EDNS0_SUBNET{
+		Code:          dns.EDNS0SUBNET,
+		Family:        1,
+		SourceNetmask: uint8(ones),
+		SourceScope:   0,
+		Address:       ipNet.IP,
 	}
 }
 
@@ -199,7 +242,7 @@ const requestPaddingBlockSize = 128
 const udpBufferSize = dns.DefaultMsgSize
 
 // newEDNS0Padding constructs a new OPT RR EDNS0 Padding for the extra section.
-func newEDNS0Padding(req dns.Msg) (extra dns.RR) {
+func newEDNS0Padding(req *dns.Msg) (option *dns.EDNS0_PADDING) {
 	msgLen := req.Len()
 	padLen := requestPaddingBlockSize - msgLen%requestPaddingBlockSize
 
@@ -211,10 +254,5 @@ func newEDNS0Padding(req dns.Msg) (extra dns.RR) {
 		}
 	}
 
-	return &dns.OPT{
-		Hdr: dns.RR_Header{Name: ".", Rrtype: dns.TypeOPT, Class: udpBufferSize},
-		Option: []dns.EDNS0{
-			&dns.EDNS0_PADDING{Padding: make([]byte, padLen)},
-		},
-	}
+	return &dns.EDNS0_PADDING{Padding: make([]byte, padLen)}
 }
