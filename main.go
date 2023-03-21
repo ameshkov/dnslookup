@@ -19,7 +19,7 @@ import (
 )
 
 // VersionString -- see the makefile
-var VersionString = "undefined"
+var VersionString = "master"
 
 func main() {
 	// parse env variables
