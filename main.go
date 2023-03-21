@@ -42,7 +42,7 @@ func main() {
 	timeout := 10
 
 	if !machineReadable {
-		os.Stdout.WriteString(fmt.Sprintf("dnslookup v. %s\n", VersionString))
+		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
 
 		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
 			os.Exit(0)
