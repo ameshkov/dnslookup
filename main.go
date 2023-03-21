@@ -140,13 +140,15 @@ func main() {
 		opt.Option = append(opt.Option, newEDNS0Padding(req))
 	}
 
+	startTime := time.Now()
 	reply, err := u.Exchange(req)
 	if err != nil {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
 
 	if !machineReadable {
-		os.Stdout.WriteString("dnslookup result:\n")
+		msg := fmt.Sprintf("dnslookup result (elapsed %v):\n", time.Now().Sub(startTime))
+		os.Stdout.WriteString(msg)
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
 		var b []byte
