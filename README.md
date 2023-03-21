@@ -126,6 +126,14 @@ Add EDNS0 Padding:
 PAD=1 dnslookup example.org tls://127.0.0.1
 ```
 
+Specify EDNS option with code point `code` and optionally payload of `value` as
+a hexadecimal string: `EDNSOPT=code:value`. Example (equivalent of dnsmasq's
+`--add-cpe-id=12345678`):
+
+```shell
+EDNSOPT=65074:3132333435363738 RRTYPE=TXT dnslookup o-o.myaddr.l.google.com tls://8.8.8.8
+```
+
 Combine multiple options:
 ```shell
 RRTYPE=TXT SUBNET=1.1.1.1/24 PAD=1 dnslookup o-o.myaddr.l.google.com tls://8.8.8.8

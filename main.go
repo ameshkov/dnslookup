@@ -31,7 +31,8 @@ func main() {
 	padding := os.Getenv("PAD") == "1"
 	class := getClass()
 	do := os.Getenv("DNSSEC") == "1"
-	subnetRR := getSubnet()
+	subnetOpt := getSubnet()
+	ednsOpt := getEDNSOpt()
 	rrType := getRRType()
 
 	if verbose {
@@ -130,9 +131,14 @@ func main() {
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
 
-	if subnetRR != nil {
+	if subnetOpt != nil {
 		opt := getOrCreateOpt(req, do)
-		opt.Option = append(opt.Option, subnetRR)
+		opt.Option = append(opt.Option, subnetOpt)
+	}
+
+	if ednsOpt != nil {
+		opt := getOrCreateOpt(req, do)
+		opt.Option = append(opt.Option, ednsOpt)
 	}
 
 	if padding {
@@ -171,7 +177,39 @@ func getOrCreateOpt(req *dns.Msg, do bool) (opt *dns.OPT) {
 	return opt
 }
 
-func getSubnet() (rr *dns.EDNS0_SUBNET) {
+func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
+	ednsOpt := os.Getenv("EDNSOPT")
+	if ednsOpt == "" {
+		return nil
+	}
+
+	parts := strings.Split(ednsOpt, ":")
+	code, err := strconv.Atoi(parts[0])
+	if err != nil {
+		log.Printf("invalid EDNSOPT %s: %v", ednsOpt, err)
+		usage()
+
+		os.Exit(1)
+	}
+
+	var value []byte
+	if len(parts) > 1 {
+		value, err = hex.DecodeString(parts[1])
+		if err != nil {
+			log.Printf("invalid EDNSOPT %s: %v", ednsOpt, err)
+			usage()
+
+			os.Exit(1)
+		}
+	}
+
+	return &dns.EDNS0_LOCAL{
+		Code: uint16(code),
+		Data: value,
+	}
+}
+
+func getSubnet() (option *dns.EDNS0_SUBNET) {
 	subnetStr := os.Getenv("SUBNET")
 	if subnetStr == "" {
 		return nil
@@ -179,7 +217,7 @@ func getSubnet() (rr *dns.EDNS0_SUBNET) {
 
 	_, ipNet, err := net.ParseCIDR(subnetStr)
 	if err != nil {
-		log.Printf("invalid SUBNET: %v", err)
+		log.Printf("invalid SUBNET %s: %v", subnetStr, err)
 		usage()
 
 		os.Exit(1)
