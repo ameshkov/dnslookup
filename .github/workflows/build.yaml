@@ -36,9 +36,52 @@ jobs:
         if: "success() && matrix.os == 'ubuntu-latest'"
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          file: ./coverage.txt
+          files: ./coverage.txt
 
   build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - GOOS: windows
+            GOARCH: 386
+          - GOOS: windows
+            GOARCH: amd64
+
+          - GOOS: darwin
+            GOARCH: amd64
+          - GOOS: darwin
+            GOARCH: arm64
+
+          - GOOS: linux
+            GOARCH: 386
+          - GOOS: linux
+            GOARCH: amd64
+
+          - GOOS: linux
+            GOARCH: arm
+            GOARM: 6
+          - GOOS: linux
+            GOARCH: arm64
+
+          - GOOS: linux
+            GOARCH: mips
+            GOMIPS: softfloat
+          - GOOS: linux
+            GOARCH: mipsle
+            GOMIPS: softfloat
+
+          - GOOS: freebsd
+            GOARCH: 386
+          - GOOS: freebsd
+            GOARCH: amd64
+
+          - GOOS: freebsd
+            GOARCH: arm
+            GOARM: 6
+          - GOOS: freebsd
+            GOARCH: arm64
+
     needs:
       - tests
     runs-on: ubuntu-latest
@@ -55,58 +98,18 @@ jobs:
         run: |-
           RELEASE_VERSION="${GITHUB_REF##*/}"
           if [[ "${RELEASE_VERSION}" != v* ]]; then RELEASE_VERSION='dev'; fi
-          echo "RELEASE_VERSION=\"${RELEASE_VERSION}\"" >> $GITHUB_ENV
+          echo "RELEASE_VERSION=${RELEASE_VERSION}" >> $GITHUB_ENV
 
-      # Win
-      - run: GOOS=windows GOARCH=386 VERSION=${RELEASE_VERSION} make release
-      - run: GOOS=windows GOARCH=amd64 VERSION=${RELEASE_VERSION} make release
-
-      # MacOS
-      - run: GOOS=darwin GOARCH=amd64 VERSION=${RELEASE_VERSION} make release
-
-      # MacOS ARM
-      - run: GOOS=darwin GOARCH=arm64 VERSION=${RELEASE_VERSION} make release
-
-      # Linux X86
-      - run: GOOS=linux GOARCH=386 VERSION=${RELEASE_VERSION} make release
-      - run: GOOS=linux GOARCH=amd64 VERSION=${RELEASE_VERSION} make release
-
-      # Linux ARM
-      - run: GOOS=linux GOARCH=arm GOARM=6 VERSION=${RELEASE_VERSION} make release
-      - run: GOOS=linux GOARCH=arm64 VERSION=${RELEASE_VERSION} make release
-
-      # Linux MIPS/MIPSLE
-      - run: GOOS=linux GOARCH=mips GOMIPS=softfloat VERSION=${RELEASE_VERSION} make release
-      - run: GOOS=linux GOARCH=mipsle GOMIPS=softfloat VERSION=${RELEASE_VERSION} make release
-
-      # FreeBSD X86
-      - run: GOOS=freebsd GOARCH=386 VERSION=${RELEASE_VERSION} make release
-      - run: GOOS=freebsd GOARCH=amd64 VERSION=${RELEASE_VERSION} make release
-
-      # FreeBSD ARM/ARM64
-      - run: GOOS=freebsd GOARCH=arm GOARM=6 VERSION=${RELEASE_VERSION} make release
-      - run: GOOS=freebsd GOARCH=arm64 VERSION=${RELEASE_VERSION} make release
+      - run: GOOS=${{ matrix.GOOS }} GOARCH=${{ matrix.GOARCH }} GOARM=${{ matrix.GOARM }} GOMIPS=${{ matrix.GOMIPS }} VERSION=${{ env.RELEASE_VERSION }} make release
 
       - run: ls -l build/dnslookup-*
 
       - name: Create release
         if: startsWith(github.ref, 'refs/tags/v')
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: svenstaro/upload-release-action@2.5.0
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-      - name: Upload
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: xresloader/upload-to-github-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          file: "build/dnslookup-*.tar.gz;build/dnslookup-*.zip"
-          tags: true
-          draft: false
+          release_name: Release ${{ env.RELEASE_VERSION }}
+          tag: ${{ github.ref }}
+          file: build/dnslookup-*
+          file_glob: true
+          overwrite: true
