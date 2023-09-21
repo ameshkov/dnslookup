@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/AdguardTeam/golibs/netutil/sysresolv"
 	"net"
 	"os"
 	"strconv"
@@ -15,6 +14,7 @@ import (
 
 	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/log"
+	"github.com/AdguardTeam/golibs/netutil/sysresolv"
 	"github.com/ameshkov/dnsstamps"
 	"github.com/miekg/dns"
 )

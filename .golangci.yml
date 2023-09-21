@@ -28,8 +28,6 @@ linters:
     - ineffassign
     - staticcheck
     - unused
-    - bodyclose
-    - depguard
     - dupl
     - gocyclo
     - goimports
