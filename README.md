@@ -23,6 +23,12 @@ protocols: plain DNS, DoH, DoT, DoQ, DNSCrypt.
 
 ### Examples:
 
+Plain DNS, use default system resolver:
+
+```shell
+dnslookup example.org
+```
+
 Plain DNS:
 
 ```shell

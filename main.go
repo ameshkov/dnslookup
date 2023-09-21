@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/AdguardTeam/golibs/netutil/sysresolv"
 	"net"
 	"os"
 	"strconv"
@@ -58,7 +59,7 @@ func main() {
 		os.Exit(0)
 	}
 
-	if len(os.Args) != 3 && len(os.Args) != 4 && len(os.Args) != 5 {
+	if len(os.Args) != 2 && len(os.Args) != 3 && len(os.Args) != 4 && len(os.Args) != 5 {
 		log.Printf("Wrong number of arguments")
 		usage()
 		os.Exit(1)
@@ -76,7 +77,19 @@ func main() {
 	}
 
 	domain := os.Args[1]
-	server := os.Args[2]
+
+	var server string
+	if len(os.Args) > 2 {
+		server = os.Args[2]
+	} else {
+		sysr, err := sysresolv.NewSystemResolvers(nil)
+		if err != nil {
+			log.Printf("Cannot get system resolvers: %v", err)
+			os.Exit(1)
+		}
+
+		server = sysr.Addrs()[0]
+	}
 
 	var httpVersions []upstream.HTTPVersion
 	if http3Enabled {
@@ -154,6 +167,7 @@ func main() {
 
 	if !machineReadable {
 		msg := fmt.Sprintf("dnslookup result (elapsed %v):\n", time.Now().Sub(startTime))
+		os.Stdout.WriteString(fmt.Sprintf("Server: %s\n\n", server))
 		os.Stdout.WriteString(msg)
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
