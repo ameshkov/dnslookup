@@ -3,6 +3,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-    "bytes"
 
 	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/log"
@@ -172,23 +172,23 @@ func main() {
 		os.Stdout.WriteString(msg)
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
-        // Prevent JSON parsing from skewing results
-        endTime := time.Now()
+		// Prevent JSON parsing from skewing results
+		endTime := time.Now()
 
 		var b []byte
-        var prettyJSON bytes.Buffer
+		var prettyJSON bytes.Buffer
 
 		b, err = json.Marshal(reply)
 		if err != nil {
 			log.Fatalf("Cannot marshal reply: %s", err)
 		}
 
-        var elapsedTime = fmt.Sprintf(",\"ElapsedTime\":%f}", float64(endTime.Sub(startTime)) / float64(time.Millisecond))
-        b = append(b[:len(b)-1], elapsedTime...)
+		var elapsedTime = fmt.Sprintf(",\"ElapsedTime\":%f}", float64(endTime.Sub(startTime))/float64(time.Millisecond))
+		b = append(b[:len(b)-1], elapsedTime...)
 
-        if err := json.Indent(&prettyJSON, []byte(b), "", "  "); err != nil {
+		if err := json.Indent(&prettyJSON, []byte(b), "", "  "); err != nil {
 			log.Fatalf("Cannot pretty print reply: %s", err)
-        }
+		}
 
 		os.Stdout.WriteString(prettyJSON.String() + "\n")
 	}
@@ -298,7 +298,7 @@ func getRRType() (rrType uint16) {
 func usage() {
 	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-    os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
+	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }
