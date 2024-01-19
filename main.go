@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+    "bytes"
 
 	"github.com/AdguardTeam/dnsproxy/upstream"
 	"github.com/AdguardTeam/golibs/log"
@@ -171,13 +172,25 @@ func main() {
 		os.Stdout.WriteString(msg)
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
+        // Prevent JSON parsing from skewing results
+        endTime := time.Now()
+
 		var b []byte
-		b, err = json.MarshalIndent(reply, "", "  ")
+        var prettyJSON bytes.Buffer
+
+		b, err = json.Marshal(reply)
 		if err != nil {
-			log.Fatalf("Cannot marshal json: %s", err)
+			log.Fatalf("Cannot marshal reply: %s", err)
 		}
 
-		os.Stdout.WriteString(string(b) + "\n")
+        var elapsedTime = fmt.Sprintf(",\"ElapsedTime\":%f}", float64(endTime.Sub(startTime)) / float64(time.Millisecond))
+        b = append(b[:len(b)-1], elapsedTime...)
+
+        if err := json.Indent(&prettyJSON, []byte(b), "", "  "); err != nil {
+			log.Fatalf("Cannot pretty print reply: %s", err)
+        }
+
+		os.Stdout.WriteString(prettyJSON.String() + "\n")
 	}
 }
 
@@ -285,7 +298,7 @@ func getRRType() (rrType uint16) {
 func usage() {
 	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
+    os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }
