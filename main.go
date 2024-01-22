@@ -19,7 +19,7 @@ import (
 	"github.com/miekg/dns"
 )
 
-type JSONMsg struct {
+type jsonMsg struct {
 	dns.Msg
 	Elapsed time.Duration `json:"elapsed"`
 }
@@ -179,7 +179,7 @@ func main() {
 		// Prevent JSON parsing from skewing results
 		endTime := time.Now()
 
-		var JSONreply JSONMsg
+		var JSONreply jsonMsg
 		JSONreply.Msg = *reply
 		JSONreply.Elapsed = endTime.Sub(startTime)
 
