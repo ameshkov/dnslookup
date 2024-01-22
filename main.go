@@ -3,7 +3,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -19,6 +18,11 @@ import (
 	"github.com/ameshkov/dnsstamps"
 	"github.com/miekg/dns"
 )
+
+type JSONMsg struct {
+	dns.Msg
+	Elapsed time.Duration `json:"elapsed"`
+}
 
 // VersionString -- see the makefile
 var VersionString = "master"
@@ -175,22 +179,17 @@ func main() {
 		// Prevent JSON parsing from skewing results
 		endTime := time.Now()
 
+		var JSONreply JSONMsg
+		JSONreply.Msg = *reply
+		JSONreply.Elapsed = endTime.Sub(startTime)
+
 		var b []byte
-		var prettyJSON bytes.Buffer
-
-		b, err = json.Marshal(reply)
+		b, err = json.MarshalIndent(JSONreply, "", "  ")
 		if err != nil {
-			log.Fatalf("Cannot marshal reply: %s", err)
+			log.Fatalf("Cannot marshal json: %s", err)
 		}
 
-		var elapsedTime = fmt.Sprintf(",\"ElapsedTime\":%f}", float64(endTime.Sub(startTime))/float64(time.Millisecond))
-		b = append(b[:len(b)-1], elapsedTime...)
-
-		if err := json.Indent(&prettyJSON, []byte(b), "", "  "); err != nil {
-			log.Fatalf("Cannot pretty print reply: %s", err)
-		}
-
-		os.Stdout.WriteString(prettyJSON.String() + "\n")
+		os.Stdout.WriteString(string(b) + "\n")
 	}
 }
 
