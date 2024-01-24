@@ -5,7 +5,7 @@
 # dnslookup
 
 Simple command line utility to make DNS lookups. Supports all known DNS
-protocols: plain DNS, DoH, DoT, DoQ, DNSCrypt.
+protocols: plain DNS, plain DNS-over-TCP, DoH, DoT, DoQ, DNSCrypt.
 
 ### How to install
 
@@ -33,6 +33,12 @@ Plain DNS:
 
 ```shell
 dnslookup example.org 94.140.14.14
+```
+
+Plain DNS-over-TCP:
+
+```shell
+dnslookup example.org tcp://94.140.14.14
 ```
 
 DNS-over-TLS:

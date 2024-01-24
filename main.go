@@ -19,6 +19,11 @@ import (
 	"github.com/miekg/dns"
 )
 
+type jsonMsg struct {
+	dns.Msg
+	Elapsed time.Duration `json:"elapsed"`
+}
+
 // VersionString -- see the makefile
 var VersionString = "master"
 
@@ -171,8 +176,15 @@ func main() {
 		os.Stdout.WriteString(msg)
 		os.Stdout.WriteString(reply.String() + "\n")
 	} else {
+		// Prevent JSON parsing from skewing results
+		endTime := time.Now()
+
+		var JSONreply jsonMsg
+		JSONreply.Msg = *reply
+		JSONreply.Elapsed = endTime.Sub(startTime)
+
 		var b []byte
-		b, err = json.MarshalIndent(reply, "", "  ")
+		b, err = json.MarshalIndent(JSONreply, "", "  ")
 		if err != nil {
 			log.Fatalf("Cannot marshal json: %s", err)
 		}
@@ -285,7 +297,7 @@ func getRRType() (rrType uint16) {
 func usage() {
 	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
+	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }
