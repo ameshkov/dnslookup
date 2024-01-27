@@ -149,18 +149,17 @@ func main() {
 		{Name: domain + ".", Qtype: rrType, Qclass: class},
 	}
 
+	opt := getOrCreateOpt(req, do)
+
 	if subnetOpt != nil {
-		opt := getOrCreateOpt(req, do)
 		opt.Option = append(opt.Option, subnetOpt)
 	}
 
 	if ednsOpt != nil {
-		opt := getOrCreateOpt(req, do)
 		opt.Option = append(opt.Option, ednsOpt)
 	}
 
 	if padding {
-		opt := getOrCreateOpt(req, do)
 		opt.Option = append(opt.Option, newEDNS0Padding(req))
 	}
 
