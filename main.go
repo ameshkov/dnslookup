@@ -3,10 +3,12 @@
 package main
 
 import (
+	"context"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"strconv"
 	"strings"
@@ -48,7 +50,7 @@ func main() {
 	timeout := 10
 
 	if !machineReadable {
-		os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+		_, _ = os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
 
 		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
 			os.Exit(0)
@@ -56,7 +58,7 @@ func main() {
 	}
 
 	if insecureSkipVerify {
-		os.Stdout.WriteString("TLS verification has been disabled\n")
+		_, _ = os.Stdout.WriteString("TLS verification has been disabled\n")
 	}
 
 	if len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help") {
@@ -87,13 +89,13 @@ func main() {
 	if len(os.Args) > 2 {
 		server = os.Args[2]
 	} else {
-		sysr, err := sysresolv.NewSystemResolvers(nil)
+		sysr, err := sysresolv.NewSystemResolvers(nil, 53)
 		if err != nil {
 			log.Printf("Cannot get system resolvers: %v", err)
 			os.Exit(1)
 		}
 
-		server = sysr.Addrs()[0]
+		server = sysr.Addrs()[0].String()
 	}
 
 	var httpVersions []upstream.HTTPVersion
@@ -116,7 +118,8 @@ func main() {
 		if ip == nil {
 			log.Fatalf("invalid IP specified: %s", os.Args[3])
 		}
-		opts.ServerIPAddrs = []net.IP{ip}
+
+		opts.Bootstrap = &singleIPResolver{ip: ip}
 	}
 
 	if len(os.Args) == 5 {
@@ -172,9 +175,9 @@ func main() {
 
 	if !machineReadable {
 		msg := fmt.Sprintf("dnslookup result (elapsed %v):\n", time.Now().Sub(startTime))
-		os.Stdout.WriteString(fmt.Sprintf("Server: %s\n\n", server))
-		os.Stdout.WriteString(msg)
-		os.Stdout.WriteString(reply.String() + "\n")
+		_, _ = os.Stdout.WriteString(fmt.Sprintf("Server: %s\n\n", server))
+		_, _ = os.Stdout.WriteString(msg)
+		_, _ = os.Stdout.WriteString(reply.String() + "\n")
 	} else {
 		// Prevent JSON parsing from skewing results
 		endTime := time.Now()
@@ -189,7 +192,7 @@ func main() {
 			log.Fatalf("Cannot marshal json: %s", err)
 		}
 
-		os.Stdout.WriteString(string(b) + "\n")
+		_, _ = os.Stdout.WriteString(string(b) + "\n")
 	}
 }
 
@@ -295,6 +298,11 @@ func getRRType() (rrType uint16) {
 }
 
 func usage() {
+	_, _ = os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
+	_, _ = os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
+	_, _ = os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
+	_, _ = os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
+	_, _ = os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
 	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
@@ -321,4 +329,24 @@ func newEDNS0Padding(req *dns.Msg) (option *dns.EDNS0_PADDING) {
 	}
 
 	return &dns.EDNS0_PADDING{Padding: make([]byte, padLen)}
+}
+
+// singleIPResolver represents a resolver that resolves a single IP address.
+// This type implements the upstream.Resolver interface.
+type singleIPResolver struct {
+	ip net.IP
+}
+
+// type check
+var _ upstream.Resolver = (*singleIPResolver)(nil)
+
+// LookupNetIP implements the upstream.Resolver interface for *singleIPResolver.
+func (s *singleIPResolver) LookupNetIP(_ context.Context, _ string, _ string) (addrs []netip.Addr, err error) {
+	ip, ok := netip.AddrFromSlice(s.ip)
+
+	if !ok {
+		return nil, fmt.Errorf("invalid IP: %s", s.ip)
+	}
+
+	return []netip.Addr{ip}, nil
 }

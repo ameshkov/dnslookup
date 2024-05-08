@@ -77,6 +77,13 @@ DNS-over-HTTPS with IP:
 dnslookup example.org https://dns.adguard.com/dns-query 94.140.14.14
 ```
 
+DNS-over-HTTPS with basic auth (supported by [AdGuard DNS](https://adguard-dns.io/)):
+
+```shell
+dnslookup example.org https://username:password@d.adguard-dns.com/dns-query
+```
+
+
 DNSCrypt (stamp):
 
 ```shell
