@@ -29,6 +29,7 @@ type jsonMsg struct {
 // VersionString -- see the makefile
 var VersionString = "master"
 
+// nolint: gocyclo
 func main() {
 	// parse env variables
 	machineReadable := os.Getenv("JSON") == "1"
@@ -300,14 +301,9 @@ func getRRType() (rrType uint16) {
 func usage() {
 	_, _ = os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	_, _ = os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	_, _ = os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
+	_, _ = os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	_, _ = os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
 	_, _ = os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
-	os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
-	os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
-	os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
-	os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
 }
 
 // requestPaddingBlockSize is used to pad responses over DoT and DoH according
