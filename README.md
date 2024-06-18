@@ -77,12 +77,12 @@ DNS-over-HTTPS with IP:
 dnslookup example.org https://dns.adguard.com/dns-query 94.140.14.14
 ```
 
-DNS-over-HTTPS with basic auth (supported by [AdGuard DNS](https://adguard-dns.io/)):
+DNS-over-HTTPS with basic auth (supported
+by [AdGuard DNS](https://adguard-dns.io/)):
 
 ```shell
 dnslookup example.org https://username:password@d.adguard-dns.com/dns-query
 ```
-
 
 DNSCrypt (stamp):
 
@@ -100,6 +100,20 @@ DNS-over-QUIC:
 
 ```shell
 dnslookup example.org quic://dns.adguard.com
+```
+
+Sending a PTR query for an IPv4 address (IP address is recognized automatically
+when RRTYPE is not specified):
+
+```shell
+dnslookup 8.8.8.8
+```
+
+Sending a PTR query for an IPv6 address (IP address is recognized automatically
+when RRTYPE is not specified):
+
+```shell
+dnslookup 2606:4700:4700::1111
 ```
 
 Machine-readable format:
@@ -154,6 +168,7 @@ EDNSOPT=65074:3132333435363738 RRTYPE=TXT dnslookup o-o.myaddr.l.google.com tls:
 ```
 
 Combine multiple options:
+
 ```shell
 RRTYPE=TXT SUBNET=1.1.1.1/24 PAD=1 dnslookup o-o.myaddr.l.google.com tls://8.8.8.8
 ```

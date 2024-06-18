@@ -38,11 +38,10 @@ func main() {
 	http3Enabled := os.Getenv("HTTP3") == "1"
 	verbose := os.Getenv("VERBOSE") == "1"
 	padding := os.Getenv("PAD") == "1"
-	class := getClass()
 	do := os.Getenv("DNSSEC") == "1"
 	subnetOpt := getSubnet()
 	ednsOpt := getEDNSOpt()
-	rrType := getRRType()
+	question := getQuestion()
 
 	if verbose {
 		log.SetLevel(log.DEBUG)
@@ -83,8 +82,6 @@ func main() {
 
 		timeout = i
 	}
-
-	domain := os.Args[1]
 
 	var server string
 	if len(os.Args) > 2 {
@@ -149,9 +146,7 @@ func main() {
 	req := &dns.Msg{}
 	req.Id = dns.Id()
 	req.RecursionDesired = true
-	req.Question = []dns.Question{
-		{Name: domain + ".", Qtype: rrType, Qclass: class},
-	}
+	req.Question = []dns.Question{question}
 
 	if subnetOpt != nil {
 		opt := getOrCreateOpt(req, do)
@@ -237,6 +232,64 @@ func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
 		Code: uint16(code),
 		Data: value,
 	}
+}
+
+// getQuestion returns a DNS question for the query.
+func getQuestion() (q dns.Question) {
+	domain := os.Args[1]
+	rrType := getRRType()
+	qClass := getClass()
+
+	// If the user tries to query an IP address and does not specify any
+	// query type, convert to PTR automatically.
+	ip := net.ParseIP(domain)
+	if os.Getenv("RRTYPE") == "" && ip != nil {
+		domain = ipToPtr(ip)
+		rrType = dns.TypePTR
+	}
+
+	q.Name = dns.Fqdn(domain)
+	q.Qtype = rrType
+	q.Qclass = qClass
+
+	return q
+}
+
+func ipToPtr(ip net.IP) (ptr string) {
+	if ip.To4() != nil {
+		return ip4ToPtr(ip)
+	}
+
+	return ip6ToPtr(ip)
+}
+
+func ip4ToPtr(ip net.IP) (ptr string) {
+	parts := strings.Split(ip.String(), ".")
+	for i := range parts {
+		ptr = parts[i] + "." + ptr
+	}
+	ptr = ptr + "in-addr.arpa."
+
+	return
+}
+
+func ip6ToPtr(ip net.IP) (ptr string) {
+	addr, _ := netip.ParseAddr(ip.String())
+	str := addr.StringExpanded()
+
+	// Remove colons and reverse the order of characters.
+	str = strings.ReplaceAll(str, ":", "")
+	reversed := ""
+	for i := len(str) - 1; i >= 0; i-- {
+		reversed += string(str[i])
+		if i != 0 {
+			reversed += "."
+		}
+	}
+
+	ptr = reversed + ".ip6.arpa."
+
+	return ptr
 }
 
 func getSubnet() (option *dns.EDNS0_SUBNET) {
