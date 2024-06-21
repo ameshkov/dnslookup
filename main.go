@@ -41,7 +41,6 @@ func main() {
 	do := os.Getenv("DNSSEC") == "1"
 	subnetOpt := getSubnet()
 	ednsOpt := getEDNSOpt()
-	question := getQuestion()
 
 	if verbose {
 		log.SetLevel(log.DEBUG)
@@ -66,11 +65,13 @@ func main() {
 		os.Exit(0)
 	}
 
-	if len(os.Args) != 2 && len(os.Args) != 3 && len(os.Args) != 4 && len(os.Args) != 5 {
+	if len(os.Args) < 2 || len(os.Args) > 5 {
 		log.Printf("Wrong number of arguments")
 		usage()
 		os.Exit(1)
 	}
+
+	question := getQuestion()
 
 	if timeoutStr != "" {
 		i, err := strconv.Atoi(timeoutStr)
