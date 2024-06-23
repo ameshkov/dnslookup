@@ -1,5 +1,5 @@
 name: dnslookup
-version: '1.11.0'
+version: '1.11.1'
 summary: Simple command-line tool to make DNS lookups using any protocol.
 description: |
   Simple command-line tool to make DNS lookups to the specified server using any protocol: DNS, DOH, DOT, DNSCrypt.
@@ -35,7 +35,7 @@ parts:
     build-snaps: [ go ]
     build-packages: [ git, build-essential ]
     override-build: |
-      VERSION="1.11.0-${SNAP_REVISION}" make
+      VERSION="1.11.1-${SNAP_REVISION}" make
       cp dnslookup ${SNAPCRAFT_PART_INSTALL}/
 
 apps:
