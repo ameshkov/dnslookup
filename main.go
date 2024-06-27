@@ -369,7 +369,7 @@ func getRRType() (rrType uint16) {
 func usage() {
 	_, _ = os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
 	_, _ = os.Stdout.WriteString("   or: dnslookup @<server> <domain> [<providerName> <serverPk>]\n")
-	_, _ = os.Stdout.WriteString("   or: dnslookup @<domain> @<server> [<providerName> <serverPk>]\n")
+	_, _ = os.Stdout.WriteString("   or: dnslookup <domain> @<server> [<providerName> <serverPk>]\n")
 	_, _ = os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
 	_, _ = os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
 	_, _ = os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
