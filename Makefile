@@ -38,6 +38,6 @@ check-env-release:
 		exit 1; \
 	fi
 	@ if [ "$(GOARCH)" = "" ]; then \
-		echo "Environment variable GOOS not set"; \
+		echo "Environment variable GOARCH not set"; \
 		exit 1; \
 	fi
