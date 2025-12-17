@@ -49,7 +49,7 @@ func main() {
 	timeout := 10
 
 	if !machineReadable {
-		_, _ = os.Stdout.WriteString(fmt.Sprintf("dnslookup %s\n", VersionString))
+		_, _ = fmt.Printf("dnslookup %s\n", VersionString)
 
 		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
 			os.Exit(0)
@@ -57,7 +57,7 @@ func main() {
 	}
 
 	if insecureSkipVerify {
-		_, _ = os.Stdout.WriteString("TLS verification has been disabled\n")
+		_, _ = fmt.Println("TLS verification has been disabled")
 	}
 
 	if len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help") {
@@ -171,10 +171,9 @@ func main() {
 	}
 
 	if !machineReadable {
-		msg := fmt.Sprintf("dnslookup result (elapsed %v):\n", time.Now().Sub(startTime))
-		_, _ = os.Stdout.WriteString(fmt.Sprintf("Server: %s\n\n", server))
-		_, _ = os.Stdout.WriteString(msg)
-		_, _ = os.Stdout.WriteString(reply.String() + "\n")
+		_, _ = fmt.Printf("Server: %s\n\n", server)
+		_, _ = fmt.Printf("dnslookup result (elapsed %v):\n", time.Since(startTime))
+		_, _ = fmt.Println(reply.String())
 	} else {
 		// Prevent JSON parsing from skewing results
 		endTime := time.Now()
@@ -189,7 +188,7 @@ func main() {
 			log.Fatalf("Cannot marshal json: %s", err)
 		}
 
-		_, _ = os.Stdout.WriteString(string(b) + "\n")
+		_, _ = fmt.Println(string(b))
 	}
 }
 
@@ -230,6 +229,7 @@ func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
 	}
 
 	return &dns.EDNS0_LOCAL{
+		// #nosec G115 -- Assume user provided code fit in uint16.
 		Code: uint16(code),
 		Data: value,
 	}
@@ -310,8 +310,9 @@ func getSubnet() (option *dns.EDNS0_SUBNET) {
 	ones, _ := ipNet.Mask.Size()
 
 	return &dns.EDNS0_SUBNET{
-		Code:          dns.EDNS0SUBNET,
-		Family:        1,
+		Code:   dns.EDNS0SUBNET,
+		Family: 1,
+		// #nosec G115 -- Assume that ones always fit in uint8.
 		SourceNetmask: uint8(ones),
 		SourceScope:   0,
 		Address:       ipNet.IP,
@@ -353,11 +354,11 @@ func getRRType() (rrType uint16) {
 }
 
 func usage() {
-	_, _ = os.Stdout.WriteString("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]\n")
-	_, _ = os.Stdout.WriteString("<domain>: mandatory, domain name to lookup\n")
-	_, _ = os.Stdout.WriteString("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)\n")
-	_, _ = os.Stdout.WriteString("<providerName>: optional, DNSCrypt provider name\n")
-	_, _ = os.Stdout.WriteString("<serverPk>: optional, DNSCrypt server public key\n")
+	_, _ = fmt.Println("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]")
+	_, _ = fmt.Println("<domain>: mandatory, domain name to lookup")
+	_, _ = fmt.Println("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)")
+	_, _ = fmt.Println("<providerName>: optional, DNSCrypt provider name")
+	_, _ = fmt.Println("<serverPk>: optional, DNSCrypt server public key")
 }
 
 // requestPaddingBlockSize is used to pad responses over DoT and DoH according
