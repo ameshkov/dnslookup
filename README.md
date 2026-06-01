@@ -7,21 +7,25 @@
 Simple command line utility to make DNS lookups. Supports all known DNS
 protocols: plain DNS, plain DNS-over-TCP, DoH, DoT, DoQ, DNSCrypt.
 
-### How to install
+## How to install
 
 * Using homebrew:
-    ```
+
+    ```sh
     brew install ameshkov/tap/dnslookup
     ```
+
 * From source:
-    ```
+
+    ```sh
     go install github.com/ameshkov/dnslookup@latest
     ```
+
 * You can get a binary from
   the [releases page](https://github.com/ameshkov/dnslookup/releases).
 * You can install it from the [Snap Store](https://snapcraft.io/dnslookup)
 
-### Examples:
+## Examples
 
 Plain DNS, use default system resolver:
 
@@ -44,19 +48,19 @@ dnslookup example.org tcp://94.140.14.14
 DNS-over-TLS:
 
 ```shell
-dnslookup example.org tls://dns.adguard.com
+dnslookup example.org tls://dns.adguard-dns.com
 ```
 
 DNS-over-TLS with IP:
 
 ```shell
-dnslookup example.org tls://dns.adguard.com 94.140.14.14
+dnslookup example.org tls://dns.adguard-dns.com 94.140.14.14
 ```
 
 DNS-over-HTTPS with HTTP/2:
 
 ```shell
-dnslookup example.org https://dns.adguard.com/dns-query
+dnslookup example.org https://dns.adguard-dns.com/dns-query
 ```
 
 DNS-over-HTTPS with HTTP/3 support (the version is chosen automatically):
@@ -68,13 +72,14 @@ HTTP3=1 dnslookup example.org https://dns.google/dns-query
 DNS-over-HTTPS forcing HTTP/3 only:
 
 ```shell
+# Google DNS
 dnslookup example.org h3://dns.google/dns-query
 ```
 
 DNS-over-HTTPS with IP:
 
 ```shell
-dnslookup example.org https://dns.adguard.com/dns-query 94.140.14.14
+dnslookup example.org https://dns.adguard-dns.com/dns-query 94.140.14.14
 ```
 
 DNS-over-HTTPS with basic auth (supported
@@ -99,7 +104,11 @@ dnslookup example.org 176.103.130.130:5443 2.dnscrypt.default.ns1.adguard.com D1
 DNS-over-QUIC:
 
 ```shell
-dnslookup example.org quic://dns.adguard.com
+# AdGuard DNS
+dnslookup example.org quic://dns.adguard-dns.com
+
+# Quad9
+dnslookup example.org quic://9.9.9.9
 ```
 
 Sending a PTR query for an IPv4 address (IP address is recognized automatically
@@ -176,5 +185,5 @@ RRTYPE=TXT SUBNET=1.1.1.1/24 PAD=1 dnslookup o-o.myaddr.l.google.com tls://8.8.8
 Verbose-level logging:
 
 ```shell
-VERBOSE=1 dnslookup example.org tls://dns.adguard.com
+VERBOSE=1 dnslookup example.org tls://dns.adguard-dns.com
 ```
