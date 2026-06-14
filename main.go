@@ -143,6 +143,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("Cannot create an upstream: %s", err)
 	}
+	defer func() {
+		_ = u.Close()
+	}()
 
 	req := &dns.Msg{}
 	req.Id = dns.Id()
