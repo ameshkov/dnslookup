@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net"
 	"net/netip"
@@ -29,64 +30,194 @@ type jsonMsg struct {
 // VersionString -- see the makefile
 var VersionString = "master"
 
+// defaultTimeout is the default query timeout in seconds.
+const defaultTimeout = 10
+
+// cliFlags holds the command-line flags.  Every flag has a matching
+// environment variable which is used when the flag is not set; see usage.
+type cliFlags struct {
+	json    *bool
+	verify  *bool
+	timeout *int
+	http3   *bool
+	verbose *bool
+	pad     *bool
+	dnssec  *bool
+	rrtype  *string
+	class   *string
+	subnet  *string
+	ednsopt *string
+	version *bool
+	help    *bool
+}
+
+// newFlagSet creates a flag set with all supported command-line flags.
+func newFlagSet() (fs *flag.FlagSet, f *cliFlags) {
+	fs = flag.NewFlagSet("dnslookup", flag.ContinueOnError)
+	fs.Usage = usage
+
+	f = &cliFlags{}
+	f.json = fs.Bool("json", false, "print the result in machine-readable JSON format (env: JSON)")
+	f.verify = fs.Bool("verify", true, "verify the TLS certificate, use --verify=false to disable (env: VERIFY)")
+	f.timeout = fs.Int("timeout", defaultTimeout, "query timeout in seconds (env: TIMEOUT)")
+	f.http3 = fs.Bool("http3", false, "enable HTTP/3 support for DNS-over-HTTPS (env: HTTP3)")
+	f.verbose = fs.Bool("verbose", false, "verbose logging (env: VERBOSE)")
+	f.pad = fs.Bool("pad", false, "add EDNS0 Padding to the request (env: PAD)")
+	f.dnssec = fs.Bool("dnssec", false, "set the DNSSEC DO bit in the request (env: DNSSEC)")
+	f.rrtype = fs.String("rrtype", "", "resource record type to query, e.g. A, AAAA, HTTPS (env: RRTYPE)")
+	f.class = fs.String("class", "", "query class, e.g. IN, CH (env: CLASS)")
+	f.subnet = fs.String("subnet", "", "EDNS Client Subnet in CIDR notation, e.g. 1.2.3.4/24 (env: SUBNET)")
+	f.ednsopt = fs.String("ednsopt", "", "EDNS option as code[:value], e.g. 65074:3132333435363738 (env: EDNSOPT)")
+	f.version = fs.Bool("version", false, "print the version and exit")
+	f.help = fs.Bool("help", false, "print this help and exit")
+	fs.BoolVar(f.version, "v", false, "print the version and exit")
+	fs.BoolVar(f.help, "h", false, "print this help and exit")
+
+	return fs, f
+}
+
+// parseArgs parses the command-line arguments.  Unlike the standard flag
+// parsing, flags may be given before, after, or between the positional
+// arguments.
+func parseArgs(fs *flag.FlagSet, args []string) (positional []string, err error) {
+	for len(args) > 0 {
+		if args[0] == "--" {
+			return append(positional, args[1:]...), nil
+		}
+
+		if err = fs.Parse(args); err != nil {
+			return nil, err
+		}
+
+		args = fs.Args()
+		if len(args) > 0 {
+			positional = append(positional, args[0])
+			args = args[1:]
+		}
+	}
+
+	return positional, nil
+}
+
 // nolint: gocyclo
 func main() {
-	// parse env variables
+	fs, flags := newFlagSet()
+
+	args, err := parseArgs(fs, os.Args[1:])
+	if err != nil {
+		// The error message and the usage have been printed by the flag
+		// set.
+
+		os.Exit(1)
+	}
+
+	set := map[string]bool{}
+	fs.Visit(func(f *flag.Flag) { set[f.Name] = true })
+
+	// Environment variables provide the defaults; command-line flags take
+	// precedence over them.
 	machineReadable := os.Getenv("JSON") == "1"
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
-	timeoutStr := os.Getenv("TIMEOUT")
 	http3Enabled := os.Getenv("HTTP3") == "1"
 	verbose := os.Getenv("VERBOSE") == "1"
 	padding := os.Getenv("PAD") == "1"
 	do := os.Getenv("DNSSEC") == "1"
-	subnetOpt := getSubnet()
-	ednsOpt := getEDNSOpt()
+	rrTypeStr := os.Getenv("RRTYPE")
+	classStr := os.Getenv("CLASS")
+	subnetStr := os.Getenv("SUBNET")
+	ednsOptStr := os.Getenv("EDNSOPT")
+
+	timeout := defaultTimeout
+	if !set["timeout"] {
+		if envTimeout := os.Getenv("TIMEOUT"); envTimeout != "" {
+			i, err := strconv.Atoi(envTimeout)
+			if err != nil {
+				log.Printf("Wrong timeout value: %s", envTimeout)
+				usage()
+				os.Exit(1)
+			}
+
+			timeout = i
+		}
+	} else {
+		timeout = *flags.timeout
+	}
+
+	if set["json"] {
+		machineReadable = *flags.json
+	}
+
+	if set["verify"] {
+		insecureSkipVerify = !*flags.verify
+	}
+
+	if set["http3"] {
+		http3Enabled = *flags.http3
+	}
+
+	if set["verbose"] {
+		verbose = *flags.verbose
+	}
+
+	if set["pad"] {
+		padding = *flags.pad
+	}
+
+	if set["dnssec"] {
+		do = *flags.dnssec
+	}
+
+	if set["rrtype"] {
+		rrTypeStr = *flags.rrtype
+	}
+
+	if set["class"] {
+		classStr = *flags.class
+	}
+
+	if set["subnet"] {
+		subnetStr = *flags.subnet
+	}
+
+	if set["ednsopt"] {
+		ednsOptStr = *flags.ednsopt
+	}
+
+	subnetOpt := getSubnet(subnetStr)
+	ednsOpt := getEDNSOpt(ednsOptStr)
 
 	if verbose {
 		log.SetLevel(log.DEBUG)
 	}
 
-	timeout := 10
-
 	if !machineReadable {
 		_, _ = fmt.Printf("dnslookup %s\n", VersionString)
+	}
 
-		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
-			os.Exit(0)
-		}
+	if *flags.version {
+		os.Exit(0)
 	}
 
 	if insecureSkipVerify {
 		_, _ = fmt.Println("TLS verification has been disabled")
 	}
 
-	if len(os.Args) == 2 && (os.Args[1] == "-h" || os.Args[1] == "--help") {
+	if *flags.help {
 		usage()
 		os.Exit(0)
 	}
 
-	if len(os.Args) < 2 || len(os.Args) > 5 {
+	if len(args) < 1 || len(args) > 4 {
 		log.Printf("Wrong number of arguments")
 		usage()
 		os.Exit(1)
 	}
 
-	question := getQuestion()
-
-	if timeoutStr != "" {
-		i, err := strconv.Atoi(timeoutStr)
-		if err != nil {
-			log.Printf("Wrong timeout value: %s", timeoutStr)
-			usage()
-			os.Exit(1)
-		}
-
-		timeout = i
-	}
+	question := getQuestion(args[0], rrTypeStr, classStr)
 
 	var server string
-	if len(os.Args) > 2 {
-		server = os.Args[2]
+	if len(args) > 1 {
+		server = args[1]
 	} else {
 		sysr, err := sysresolv.NewSystemResolvers(nil, 53)
 		if err != nil {
@@ -112,19 +243,19 @@ func main() {
 		HTTPVersions:       httpVersions,
 	}
 
-	if len(os.Args) == 4 {
-		ip := net.ParseIP(os.Args[3])
+	if len(args) == 3 {
+		ip := net.ParseIP(args[2])
 		if ip == nil {
-			log.Fatalf("invalid IP specified: %s", os.Args[3])
+			log.Fatalf("invalid IP specified: %s", args[2])
 		}
 
 		opts.Bootstrap = &singleIPResolver{ip: ip}
 	}
 
-	if len(os.Args) == 5 {
+	if len(args) == 4 {
 		// DNSCrypt parameters
-		providerName := os.Args[3]
-		serverPkStr := os.Args[4]
+		providerName := args[2]
+		serverPkStr := args[3]
 
 		serverPk, err := hex.DecodeString(strings.ReplaceAll(serverPkStr, ":", ""))
 		if err != nil {
@@ -148,6 +279,12 @@ func main() {
 	req.Id = dns.Id()
 	req.RecursionDesired = true
 	req.Question = []dns.Question{question}
+
+	// An OPT record is required to signal the DNSSEC DO bit, so create it
+	// even when there are no other EDNS0 options.
+	if do {
+		getOrCreateOpt(req, do)
+	}
 
 	if subnetOpt != nil {
 		opt := getOrCreateOpt(req, do)
@@ -202,8 +339,7 @@ func getOrCreateOpt(req *dns.Msg, do bool) (opt *dns.OPT) {
 	return opt
 }
 
-func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
-	ednsOpt := os.Getenv("EDNSOPT")
+func getEDNSOpt(ednsOpt string) (option *dns.EDNS0_LOCAL) {
 	if ednsOpt == "" {
 		return nil
 	}
@@ -236,15 +372,13 @@ func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
 }
 
 // getQuestion returns a DNS question for the query.
-func getQuestion() (q dns.Question) {
-	domain := os.Args[1]
-	rrType := getRRType()
-	qClass := getClass()
+func getQuestion(domain, rrTypeStr, classStr string) (q dns.Question) {
+	rrType := getRRType(rrTypeStr)
+	qClass := getClass(classStr)
 
 	// If the user tries to query an IP address and does not specify any
 	// query type, convert to PTR automatically.
-	ip := net.ParseIP(domain)
-	if os.Getenv("RRTYPE") == "" && ip != nil {
+	if ip := net.ParseIP(domain); ip != nil && rrTypeStr == "" {
 		domain = ipToPtr(ip)
 		rrType = dns.TypePTR
 	}
@@ -293,8 +427,7 @@ func ip6ToPtr(ip net.IP) (ptr string) {
 	return ptr
 }
 
-func getSubnet() (option *dns.EDNS0_SUBNET) {
-	subnetStr := os.Getenv("SUBNET")
+func getSubnet(subnetStr string) (option *dns.EDNS0_SUBNET) {
 	if subnetStr == "" {
 		return nil
 	}
@@ -319,8 +452,7 @@ func getSubnet() (option *dns.EDNS0_SUBNET) {
 	}
 }
 
-func getClass() (class uint16) {
-	classStr := os.Getenv("CLASS")
+func getClass(classStr string) (class uint16) {
 	var ok bool
 	class, ok = dns.StringToClass[classStr]
 	if !ok {
@@ -336,8 +468,7 @@ func getClass() (class uint16) {
 	return class
 }
 
-func getRRType() (rrType uint16) {
-	rrTypeStr := os.Getenv("RRTYPE")
+func getRRType(rrTypeStr string) (rrType uint16) {
 	var ok bool
 	rrType, ok = dns.StringToType[rrTypeStr]
 	if !ok {
@@ -354,11 +485,25 @@ func getRRType() (rrType uint16) {
 }
 
 func usage() {
-	_, _ = fmt.Println("Usage: dnslookup <domain> <server> [<providerName> <serverPk>]")
+	_, _ = fmt.Println("Usage: dnslookup [<options>] <domain> [<server> [<providerName> <serverPk>]]")
 	_, _ = fmt.Println("<domain>: mandatory, domain name to lookup")
-	_, _ = fmt.Println("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)")
+	_, _ = fmt.Println("<server>: optional, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)")
 	_, _ = fmt.Println("<providerName>: optional, DNSCrypt provider name")
 	_, _ = fmt.Println("<serverPk>: optional, DNSCrypt server public key")
+	_, _ = fmt.Println("Options (flags override the corresponding environment variables):")
+	_, _ = fmt.Printf("  %-24s %s\n", "--rrtype <type>", "resource record type to query (env RRTYPE, default A)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--class <class>", "query class (env CLASS, default IN)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--subnet <subnet>", "EDNS Client Subnet in CIDR notation (env SUBNET)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--ednsopt <code[:value]>", "EDNS option (env EDNSOPT)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--dnssec", "set the DNSSEC DO bit in the request (env DNSSEC=1)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--pad", "add EDNS0 Padding to the request (env PAD=1)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--timeout <seconds>", "query timeout in seconds (env TIMEOUT, default 10)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--json", "machine-readable JSON output (env JSON=1)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--verify=<bool>", "verify the TLS certificate, --verify=false disables (env VERIFY, default true)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--http3", "enable HTTP/3 support for DNS-over-HTTPS (env HTTP3=1)")
+	_, _ = fmt.Printf("  %-24s %s\n", "--verbose", "verbose logging (env VERBOSE=1)")
+	_, _ = fmt.Printf("  %-24s %s\n", "-v, --version", "print the version and exit")
+	_, _ = fmt.Printf("  %-24s %s\n", "-h, --help", "print this help and exit")
 }
 
 // requestPaddingBlockSize is used to pad responses over DoT and DoH according

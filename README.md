@@ -25,6 +25,44 @@ protocols: plain DNS, plain DNS-over-TCP, DoH, DoT, DoQ, DNSCrypt.
   the [releases page](https://github.com/ameshkov/dnslookup/releases).
 * You can install it from the [Snap Store](https://snapcraft.io/dnslookup)
 
+## Options
+
+Every option can be passed either as a command-line flag or as an environment
+variable.  Command-line flags take precedence over environment variables, and
+can be placed before, after, or between the positional arguments.
+
+| Flag | Environment variable | Description |
+|------|----------------------|-------------|
+| `--rrtype <type>` | `RRTYPE` | Type of resource record to query, default `A` |
+| `--class <class>` | `CLASS` | Class of the query, default `IN` |
+| `--subnet <subnet>` | `SUBNET` | EDNS Client Subnet, e.g. `1.2.3.4/24` |
+| `--ednsopt <code[:value]>` | `EDNSOPT` | EDNS option with code point `code` and optionally payload `value` as a hexadecimal string |
+| `--dnssec` | `DNSSEC=1` | Set the DNSSEC DO bit in the request's OPT record |
+| `--pad` | `PAD=1` | Add EDNS0 Padding |
+| `--timeout <seconds>` | `TIMEOUT` | Query timeout in seconds, default 10 |
+| `--json` | `JSON=1` | Machine-readable JSON output |
+| `--verify=<bool>` | `VERIFY` | Verify the TLS certificate, default true; `--verify=false` disables it (same as `VERIFY=0`) |
+| `--http3` | `HTTP3=1` | Enable HTTP/3 support for DoH |
+| `--verbose` | `VERBOSE=1` | Verbose logging |
+| `-v`, `--version` | | Print the version and exit |
+| `-h`, `--help` | | Print usage and exit |
+
+Examples:
+
+```shell
+# Same as RRTYPE=AAAA dnslookup example.org tls://dns.adguard-dns.com
+dnslookup example.org tls://dns.adguard-dns.com --rrtype AAAA
+
+dnslookup example.org tls://dns.adguard-dns.com --rrtype HTTPS --dnssec
+
+dnslookup o-o.myaddr.l.google.com tls://8.8.8.8 --rrtype TXT --subnet 1.1.1.1/24 --pad
+
+dnslookup example.org tls://127.0.0.1 --verify=false
+
+# The flag wins, so this queries AAAA:
+RRTYPE=A dnslookup example.org 94.140.14.14 --rrtype AAAA
+```
+
 ## Examples
 
 Plain DNS, use default system resolver:
