@@ -29,12 +29,10 @@ type jsonMsg struct {
 // VersionString -- see the makefile
 var VersionString = "master"
 
-// nolint: gocyclo
 func main() {
 	// parse env variables
 	machineReadable := os.Getenv("JSON") == "1"
 	insecureSkipVerify := os.Getenv("VERIFY") == "0"
-	timeoutStr := os.Getenv("TIMEOUT")
 	http3Enabled := os.Getenv("HTTP3") == "1"
 	verbose := os.Getenv("VERBOSE") == "1"
 	padding := os.Getenv("PAD") == "1"
@@ -46,16 +44,58 @@ func main() {
 		log.SetLevel(log.DEBUG)
 	}
 
-	timeout := 10
+	printVersion(machineReadable)
+	checkArgs(insecureSkipVerify)
 
-	if !machineReadable {
-		_, _ = fmt.Printf("dnslookup %s\n", VersionString)
+	question := getQuestion()
 
-		if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
-			os.Exit(0)
-		}
+	opts := &upstream.Options{
+		Timeout:            time.Duration(getTimeout()) * time.Second,
+		InsecureSkipVerify: insecureSkipVerify,
+		HTTPVersions:       getHTTPVersions(http3Enabled),
 	}
 
+	applyBootstrap(opts)
+
+	server := setupDNSCrypt(getServer())
+
+	u, err := upstream.AddressToUpstream(server, opts)
+	if err != nil {
+		log.Fatalf("Cannot create an upstream: %s", err)
+	}
+
+	req, err := buildRequest(question, requestOptions{
+		DNSSEC:  do,
+		Subnet:  subnetOpt,
+		EDNSOpt: ednsOpt,
+		Padding: padding,
+	})
+	if err != nil {
+		log.Fatalf("Cannot build the DNS request: %s", err)
+	}
+
+	startTime := time.Now()
+	reply, err := u.Exchange(req)
+	if err != nil {
+		log.Fatalf("Cannot make the DNS request: %s", err)
+	}
+
+	printReply(machineReadable, server, startTime, reply)
+}
+
+func printVersion(machineReadable bool) {
+	if machineReadable {
+		return
+	}
+
+	_, _ = fmt.Printf("dnslookup %s\n", VersionString)
+
+	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		os.Exit(0)
+	}
+}
+
+func checkArgs(insecureSkipVerify bool) {
 	if insecureSkipVerify {
 		_, _ = fmt.Println("TLS verification has been disabled")
 	}
@@ -68,36 +108,45 @@ func main() {
 	if len(os.Args) < 2 || len(os.Args) > 5 {
 		log.Printf("Wrong number of arguments")
 		usage()
+
+		os.Exit(1)
+	}
+}
+
+func getTimeout() (timeout int) {
+	timeout = 10
+
+	timeoutStr := os.Getenv("TIMEOUT")
+	if timeoutStr == "" {
+		return timeout
+	}
+
+	i, err := strconv.Atoi(timeoutStr)
+	if err != nil {
+		log.Printf("Wrong timeout value: %s", timeoutStr)
+		usage()
+
 		os.Exit(1)
 	}
 
-	question := getQuestion()
+	return i
+}
 
-	if timeoutStr != "" {
-		i, err := strconv.Atoi(timeoutStr)
-		if err != nil {
-			log.Printf("Wrong timeout value: %s", timeoutStr)
-			usage()
-			os.Exit(1)
-		}
-
-		timeout = i
-	}
-
-	var server string
+func getServer() (server string) {
 	if len(os.Args) > 2 {
-		server = os.Args[2]
-	} else {
-		sysr, err := sysresolv.NewSystemResolvers(nil, 53)
-		if err != nil {
-			log.Printf("Cannot get system resolvers: %v", err)
-			os.Exit(1)
-		}
-
-		server = sysr.Addrs()[0].String()
+		return os.Args[2]
 	}
 
-	var httpVersions []upstream.HTTPVersion
+	sysr, err := sysresolv.NewSystemResolvers(nil, 53)
+	if err != nil {
+		log.Printf("Cannot get system resolvers: %v", err)
+		os.Exit(1)
+	}
+
+	return sysr.Addrs()[0].String()
+}
+
+func getHTTPVersions(http3Enabled bool) (httpVersions []upstream.HTTPVersion) {
 	if http3Enabled {
 		httpVersions = []upstream.HTTPVersion{
 			upstream.HTTPVersion3,
@@ -106,100 +155,67 @@ func main() {
 		}
 	}
 
-	opts := &upstream.Options{
-		Timeout:            time.Duration(timeout) * time.Second,
-		InsecureSkipVerify: insecureSkipVerify,
-		HTTPVersions:       httpVersions,
+	return httpVersions
+}
+
+func applyBootstrap(opts *upstream.Options) {
+	if len(os.Args) != 4 {
+		return
 	}
 
-	if len(os.Args) == 4 {
-		ip := net.ParseIP(os.Args[3])
-		if ip == nil {
-			log.Fatalf("invalid IP specified: %s", os.Args[3])
-		}
-
-		opts.Bootstrap = &singleIPResolver{ip: ip}
+	ip := net.ParseIP(os.Args[3])
+	if ip == nil {
+		log.Fatalf("invalid IP specified: %s", os.Args[3])
 	}
 
-	if len(os.Args) == 5 {
-		// DNSCrypt parameters
-		providerName := os.Args[3]
-		serverPkStr := os.Args[4]
+	opts.Bootstrap = &singleIPResolver{ip: ip}
+}
 
-		serverPk, err := hex.DecodeString(strings.ReplaceAll(serverPkStr, ":", ""))
-		if err != nil {
-			log.Fatalf("Invalid server PK %s: %s", serverPkStr, err)
-		}
-
-		var stamp dnsstamps.ServerStamp
-		stamp.Proto = dnsstamps.StampProtoTypeDNSCrypt
-		stamp.ServerAddrStr = server
-		stamp.ProviderName = providerName
-		stamp.ServerPk = serverPk
-		server = stamp.String()
+func setupDNSCrypt(server string) (stamped string) {
+	if len(os.Args) != 5 {
+		return server
 	}
 
-	u, err := upstream.AddressToUpstream(server, opts)
+	// DNSCrypt parameters
+	providerName := os.Args[3]
+	serverPkStr := os.Args[4]
+
+	serverPk, err := hex.DecodeString(strings.ReplaceAll(serverPkStr, ":", ""))
 	if err != nil {
-		log.Fatalf("Cannot create an upstream: %s", err)
+		log.Fatalf("Invalid server PK %s: %s", serverPkStr, err)
 	}
 
-	req := &dns.Msg{}
-	req.Id = dns.Id()
-	req.RecursionDesired = true
-	req.Question = []dns.Question{question}
+	var stamp dnsstamps.ServerStamp
+	stamp.Proto = dnsstamps.StampProtoTypeDNSCrypt
+	stamp.ServerAddrStr = server
+	stamp.ProviderName = providerName
+	stamp.ServerPk = serverPk
 
-	if subnetOpt != nil {
-		opt := getOrCreateOpt(req, do)
-		opt.Option = append(opt.Option, subnetOpt)
-	}
+	return stamp.String()
+}
 
-	if ednsOpt != nil {
-		opt := getOrCreateOpt(req, do)
-		opt.Option = append(opt.Option, ednsOpt)
-	}
-
-	if padding {
-		opt := getOrCreateOpt(req, do)
-		opt.Option = append(opt.Option, newEDNS0Padding(req))
-	}
-
-	startTime := time.Now()
-	reply, err := u.Exchange(req)
-	if err != nil {
-		log.Fatalf("Cannot make the DNS request: %s", err)
-	}
-
+func printReply(machineReadable bool, server string, startTime time.Time, reply *dns.Msg) {
 	if !machineReadable {
 		_, _ = fmt.Printf("Server: %s\n\n", server)
 		_, _ = fmt.Printf("dnslookup result (elapsed %v):\n", time.Since(startTime))
 		_, _ = fmt.Println(reply.String())
-	} else {
-		// Prevent JSON parsing from skewing results
-		endTime := time.Now()
 
-		var JSONreply jsonMsg
-		JSONreply.Msg = *reply
-		JSONreply.Elapsed = endTime.Sub(startTime)
-
-		var b []byte
-		b, err = json.MarshalIndent(JSONreply, "", "  ")
-		if err != nil {
-			log.Fatalf("Cannot marshal json: %s", err)
-		}
-
-		_, _ = fmt.Println(string(b))
-	}
-}
-
-func getOrCreateOpt(req *dns.Msg, do bool) (opt *dns.OPT) {
-	opt = req.IsEdns0()
-	if opt == nil {
-		req.SetEdns0(udpBufferSize, do)
-		opt = req.IsEdns0()
+		return
 	}
 
-	return opt
+	// Prevent JSON parsing from skewing results
+	endTime := time.Now()
+
+	var JSONreply jsonMsg
+	JSONreply.Msg = *reply
+	JSONreply.Elapsed = endTime.Sub(startTime)
+
+	b, err := json.MarshalIndent(JSONreply, "", "  ")
+	if err != nil {
+		log.Fatalf("Cannot marshal json: %s", err)
+	}
+
+	_, _ = fmt.Println(string(b))
 }
 
 func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
@@ -208,8 +224,7 @@ func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
 		return nil
 	}
 
-	parts := strings.Split(ednsOpt, ":")
-	code, err := strconv.Atoi(parts[0])
+	option, err := parseEDNSOpt(ednsOpt)
 	if err != nil {
 		log.Printf("invalid EDNSOPT %s: %v", ednsOpt, err)
 		usage()
@@ -217,22 +232,7 @@ func getEDNSOpt() (option *dns.EDNS0_LOCAL) {
 		os.Exit(1)
 	}
 
-	var value []byte
-	if len(parts) > 1 {
-		value, err = hex.DecodeString(parts[1])
-		if err != nil {
-			log.Printf("invalid EDNSOPT %s: %v", ednsOpt, err)
-			usage()
-
-			os.Exit(1)
-		}
-	}
-
-	return &dns.EDNS0_LOCAL{
-		// #nosec G115 -- Assume user provided code fit in uint16.
-		Code: uint16(code),
-		Data: value,
-	}
+	return option
 }
 
 // getQuestion returns a DNS question for the query.
@@ -299,7 +299,7 @@ func getSubnet() (option *dns.EDNS0_SUBNET) {
 		return nil
 	}
 
-	_, ipNet, err := net.ParseCIDR(subnetStr)
+	option, err := parseSubnet(subnetStr)
 	if err != nil {
 		log.Printf("invalid SUBNET %s: %v", subnetStr, err)
 		usage()
@@ -307,16 +307,7 @@ func getSubnet() (option *dns.EDNS0_SUBNET) {
 		os.Exit(1)
 	}
 
-	ones, _ := ipNet.Mask.Size()
-
-	return &dns.EDNS0_SUBNET{
-		Code:   dns.EDNS0SUBNET,
-		Family: 1,
-		// #nosec G115 -- Assume that ones always fit in uint8.
-		SourceNetmask: uint8(ones),
-		SourceScope:   0,
-		Address:       ipNet.IP,
-	}
+	return option
 }
 
 func getClass() (class uint16) {
@@ -359,27 +350,6 @@ func usage() {
 	_, _ = fmt.Println("<server>: mandatory, server address. Supported: plain, tcp:// (TCP), tls:// (DOT), https:// (DOH), sdns:// (DNSCrypt), quic:// (DOQ)")
 	_, _ = fmt.Println("<providerName>: optional, DNSCrypt provider name")
 	_, _ = fmt.Println("<serverPk>: optional, DNSCrypt server public key")
-}
-
-// requestPaddingBlockSize is used to pad responses over DoT and DoH according
-// to RFC 8467.
-const requestPaddingBlockSize = 128
-const udpBufferSize = dns.DefaultMsgSize
-
-// newEDNS0Padding constructs a new OPT RR EDNS0 Padding for the extra section.
-func newEDNS0Padding(req *dns.Msg) (option *dns.EDNS0_PADDING) {
-	msgLen := req.Len()
-	padLen := requestPaddingBlockSize - msgLen%requestPaddingBlockSize
-
-	// Truncate padding to fit in UDP buffer.
-	if msgLen+padLen > udpBufferSize {
-		padLen = udpBufferSize - msgLen
-		if padLen < 0 {
-			padLen = 0
-		}
-	}
-
-	return &dns.EDNS0_PADDING{Padding: make([]byte, padLen)}
 }
 
 // singleIPResolver represents a resolver that resolves a single IP address.
