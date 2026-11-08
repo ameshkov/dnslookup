@@ -75,7 +75,7 @@ func main() {
 	}
 
 	startTime := time.Now()
-	reply, err := u.Exchange(req)
+	reply, err := u.Exchange(context.Background(), req)
 	if err != nil {
 		log.Fatalf("Cannot make the DNS request: %s", err)
 	}
