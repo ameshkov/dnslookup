@@ -17,7 +17,7 @@ const udpBufferSize = dns.DefaultMsgSize
 
 // requestOptions carries the EDNS-related options of a query.
 type requestOptions struct {
-	DNSSEC  bool              // set the DO bit (RFC 4035 §4.6)
+	DNSSEC  bool              // set the DO bit (RFC 3225, RFC 4035 §4.9.1)
 	Subnet  *dns.EDNS0_SUBNET // EDNS Client Subnet option, nil if absent
 	EDNSOpt *dns.EDNS0_LOCAL  // arbitrary EDNS option, nil if absent
 	Padding bool              // RFC 8467 block-length padding of the request
