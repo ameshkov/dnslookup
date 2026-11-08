@@ -319,6 +319,137 @@ func TestPaddingBlock128(t *testing.T) {
 	}
 }
 
+// queryNameForBaseLen returns a question name for which a message holding the
+// question and an OPT record, but no padding option, packs to exactly baseLen
+// bytes.  The name is built from a full 63-byte label followed by a
+// variable-length "a" label, and the length is found by packing real messages.
+func queryNameForBaseLen(t *testing.T, baseLen int) (qname string) {
+	t.Helper()
+
+	for tailLen := 1; tailLen <= 63; tailLen++ {
+		name := strings.Repeat("a", 63) + "." + strings.Repeat("a", tailLen) + "."
+		msg := &dns.Msg{}
+		msg.RecursionDesired = true
+		msg.Question = []dns.Question{{
+			Name:   name,
+			Qtype:  dns.TypeA,
+			Qclass: dns.ClassINET,
+		}}
+		msg.SetEdns0(udpBufferSize, false)
+
+		packed, err := msg.Pack()
+		if err != nil {
+			t.Fatalf("Pack failed: %v", err)
+		}
+		if len(packed) == baseLen {
+			return name
+		}
+	}
+
+	t.Fatalf("no tail label length in [1, 63] packs the base message to %d bytes", baseLen)
+
+	return ""
+}
+
+// paddingOption returns the EDNS0_PADDING option of the OPT record of req.
+func paddingOption(t *testing.T, req *dns.Msg) (padOpt *dns.EDNS0_PADDING) {
+	t.Helper()
+
+	opt := req.IsEdns0()
+	if opt == nil {
+		t.Fatalf("expected an OPT record, got nil")
+	}
+
+	for _, o := range opt.Option {
+		if p, ok := o.(*dns.EDNS0_PADDING); ok {
+			return p
+		}
+	}
+
+	t.Fatalf("expected an EDNS0_PADDING option in the OPT record")
+
+	return nil
+}
+
+// TestPaddingRequestAlignedToBlockSize covers requests whose length including
+// the 4-byte header of the padding option is exactly on, one byte below, or
+// one byte above the block boundary.  Expected lengths are derived from the
+// packed length of a real message without the padding option, never from the
+// function under test.
+func TestPaddingRequestAlignedToBlockSize(t *testing.T) {
+	t.Parallel()
+
+	// wantMsgLen is req.Len() + 4, i.e. the packed length of the request
+	// including the 4-byte header of the padding option itself.
+	cases := []struct {
+		name       string
+		wantMsgLen int
+	}{
+		{
+			name:       "request_aligned_exactly_to_128_bytes",
+			wantMsgLen: 128,
+		},
+		{
+			name:       "request_one_byte_below_128",
+			wantMsgLen: 127,
+		},
+		{
+			name:       "request_one_byte_above_128",
+			wantMsgLen: 129,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			q := dns.Question{
+				Name:   queryNameForBaseLen(t, tc.wantMsgLen-4),
+				Qtype:  dns.TypeA,
+				Qclass: dns.ClassINET,
+			}
+
+			// base is the same request without the padding option; its
+			// packed length must be tc.wantMsgLen - 4.
+			base := &dns.Msg{}
+			base.RecursionDesired = true
+			base.Question = []dns.Question{q}
+			base.SetEdns0(udpBufferSize, false)
+			basePacked, err := base.Pack()
+			if err != nil {
+				t.Fatalf("Pack failed: %v", err)
+			}
+			if len(basePacked) != tc.wantMsgLen-4 {
+				t.Fatalf("expected len(basePacked) == %d, got %d", tc.wantMsgLen-4, len(basePacked))
+			}
+
+			msgLen := len(basePacked) + 4
+			fullLen := ((msgLen + requestPaddingBlockSize - 1) / requestPaddingBlockSize) * requestPaddingBlockSize
+			wantPad := fullLen - msgLen
+
+			req := mustBuildRequest(t, q, false, nil, nil, true)
+
+			padOpt := paddingOption(t, req)
+			if len(padOpt.Padding) != wantPad {
+				t.Fatalf("expected padding length %d, got %d", wantPad, len(padOpt.Padding))
+			}
+
+			packed, err := req.Pack()
+			if err != nil {
+				t.Fatalf("Pack failed: %v", err)
+			}
+			if len(packed) != fullLen {
+				t.Fatalf("expected len(packed) == %d, got %d", fullLen, len(packed))
+			}
+
+			constructed := newEDNS0Padding(base)
+			if len(constructed.Padding) != wantPad {
+				t.Fatalf("expected constructed padding length %d, got %d", wantPad, len(constructed.Padding))
+			}
+		})
+	}
+}
+
 func TestParseEDNSOpt(t *testing.T) {
 	t.Parallel()
 
